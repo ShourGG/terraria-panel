@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>泰拉瑞亚服务器管理面板</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    header {
+      background-color: #333;
+      color: white;
+      padding: 20px 0;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .card {
+      background: white;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .status-label {
+      font-weight: bold;
+    }
+    .status-value {
+      color: #666;
+    }
+    .btn {
+      display: inline-block;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      border-radius: 3px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    .btn:hover {
+      background: #45a049;
+    }
+    .btn-stop {
+      background: #f44336;
+    }
+    .btn-stop:hover {
+      background: #d32f2f;
+    }
+    .btn-restart {
+      background: #2196F3;
+    }
+    .btn-restart:hover {
+      background: #0b7dda;
+    }
+    .info-text {
+      color: #666;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>泰拉瑞亚服务器管理面板</h1>
+      <p>简单高效的服务器管理工具</p>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <div class="card-title">服务器状态</div>
+      <div class="status-item">
+        <span class="status-label">状态:</span>
+        <span class="status-value" id="server-status">检查中...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">CPU:</span>
+        <span class="status-value" id="cpu-usage">--</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">内存:</span>
+        <span class="status-value" id="memory-usage">--</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">运行时间:</span>
+        <span class="status-value" id="uptime">--</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">服务器控制</div>
+      <button class="btn" id="btn-start">启动服务器</button>
+      <button class="btn btn-stop" id="btn-stop">停止服务器</button>
+      <button class="btn btn-restart" id="btn-restart">重启服务器</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">文件管理</div>
+      <button class="btn" id="btn-file-manager">文件管理器</button>
+      <button class="btn" id="btn-logs">查看日志</button>
+    </div>
+
+    <p class="info-text">此管理面板由 <a href="https://github.com/ShourGG/terraria-panel" target="_blank">泰拉瑞亚服务器管理面板</a> 提供支持</p>
+  </div>
+
+  <script>
+    // 简单的页面交互脚本
+    document.addEventListener('DOMContentLoaded', function() {
+      // 模拟状态更新
+      document.getElementById('server-status').textContent = '运行中';
+      document.getElementById('cpu-usage').textContent = '12%';
+      document.getElementById('memory-usage').textContent = '1.2 GB / 4 GB';
+      document.getElementById('uptime').textContent = '3天4小时';
+      
+      // 按钮点击事件
+      document.getElementById('btn-start').addEventListener('click', function() {
+        alert('启动服务器功能尚未实现');
+      });
+      
+      document.getElementById('btn-stop').addEventListener('click', function() {
+        alert('停止服务器功能尚未实现');
+      });
+      
+      document.getElementById('btn-restart').addEventListener('click', function() {
+        alert('重启服务器功能尚未实现');
+      });
+      
+      document.getElementById('btn-file-manager').addEventListener('click', function() {
+        alert('文件管理功能尚未实现');
+      });
+      
+      document.getElementById('btn-logs').addEventListener('click', function() {
+        alert('日志查看功能尚未实现');
+      });
+    });
+  </script>
+</body>
+</html> 

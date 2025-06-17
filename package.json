@@ -5,38 +5,15 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "cd koi-ui-master && pnpm install && pnpm build && cd .. && mkdir -p dist && cp -r koi-ui-master/dist/* dist/",
-    "pkg": "pkg . --target node16-linux-x64 --output bin/terraria-panel",
-    "pkg:win": "pkg . --target node16-win-x64 --output bin/terraria-panel.exe",
+    "build": "mkdir -p dist && cp -r src/html/* dist/ || true",
     "postinstall": "npm run build"
   },
-  "bin": "server.js",
-  "pkg": {
-    "assets": [
-      "dist/**/*",
-      "node_modules/**/*"
-    ],
-    "scripts": [
-      "server.js"
-    ]
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/yourusername/terraria-panel.git"
-  },
-  "keywords": [
-    "terraria",
-    "panel",
-    "server",
-    "management",
-    "linux"
-  ],
-  "author": "Your Name",
-  "license": "MIT",
   "dependencies": {
     "express": "^4.18.2"
   },
-  "devDependencies": {
-    "pkg": "^5.8.1"
-  }
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "author": "ShourGG",
+  "license": "MIT"
 } 

@@ -538,56 +538,141 @@ check_network() {
     fi
 }
 
+# 检查并停止已运行的实例
+check_and_kill_running_instance() {
+    echo -e "${BLUE}检查已运行的实例...${NC}"
+    
+    # 获取当前端口上运行的进程
+    RUNNING_PID=$(lsof -t -i:$PORT 2>/dev/null)
+    
+    if [ -n "$RUNNING_PID" ]; then
+        echo -e "${YELLOW}发现端口 $PORT 已被占用，PID: $RUNNING_PID${NC}"
+        echo -e "${BLUE}尝试停止已运行的实例...${NC}"
+        
+        # 先尝试正常终止
+        kill $RUNNING_PID 2>/dev/null
+        sleep 2
+        
+        # 检查进程是否仍在运行
+        if ps -p $RUNNING_PID >/dev/null 2>&1; then
+            echo -e "${YELLOW}正常终止失败，尝试强制终止进程...${NC}"
+            kill -9 $RUNNING_PID 2>/dev/null
+            sleep 1
+        fi
+        
+        # 再次检查端口
+        if lsof -t -i:$PORT >/dev/null 2>&1; then
+            echo -e "${RED}无法释放端口 $PORT，请手动终止占用该端口的进程或更换端口${NC}"
+            return 1
+        else
+            echo -e "${GREEN}已成功停止之前的实例${NC}"
+        fi
+    fi
+    
+    return 0
+}
+
 # 启动面板
 start_panel() {
     echo -e "${BLUE}启动泰拉瑞亚管理面板...${NC}"
     
     # 检查面板程序是否存在
     if [ ! -f "$BIN_DIR/$BIN_NAME" ]; then
-        echo -e "${RED}面板程序不存在，请先下载面板${NC}"
+        echo -e "${RED}面板程序不存在，请先安装${NC}"
         return 1
     fi
     
-    # 如果已有进程在运行，先停止
-    if [ -f "$BASE_DIR/panel.pid" ]; then
-        stop_panel
-    fi
+    # 检查并停止已在运行的实例
+    check_and_kill_running_instance || return 1
     
-    # 启动面板
-    cd "$BIN_DIR" || { echo -e "${RED}无法进入目录 $BIN_DIR${NC}"; return 1; }
+    # 先停止当前可能运行的面板
+    stop_panel
     
-    # 确保PORT环境变量被正确设置
+    # 等待一下确保完全停止
+    sleep 2
+    
+    # 创建日志目录
+    mkdir -p "$LOG_DIR"
+    
+    # 确保环境变量正确设置
     export PORT=$PORT
     
-    # 使用环境变量启动Node.js程序
-    nohup node "$BIN_NAME" > "$LOG_FILE" 2>&1 &
-    echo $! > "$BASE_DIR/panel.pid"
-    
-    # 等待服务启动
-    echo -e "${BLUE}等待服务启动...${NC}"
-    sleep 3
-    
-    # 检查服务是否成功启动
-    if [ -f "$BASE_DIR/panel.pid" ] && ps -p $(cat "$BASE_DIR/panel.pid") &> /dev/null; then
-        echo -e "${GREEN}面板启动成功${NC}"
-        
-        # 检查网络连接和提供访问地址
-        check_network
-        
-        # 提供可能的故障排除信息
-        echo -e "${YELLOW}提示:${NC} 如果无法访问面板，请检查以下几点:"
-        echo -e "  1. ${YELLOW}确保防火墙允许访问端口 $PORT${NC}"
-        echo -e "  2. ${YELLOW}如果使用云服务器，需要在控制台开放端口 $PORT${NC}"
-        echo -e "  3. ${YELLOW}尝试使用HTTP而非HTTPS访问 (http://IP:$PORT)${NC}"
-        echo -e "  4. ${YELLOW}在访问链接中明确指定协议，例如 'http://'${NC}"
-        echo -e "  5. ${YELLOW}检查服务器是否有安全组或网络ACL限制${NC}"
-        echo -e "  6. ${YELLOW}尝试从服务器本地使用 curl http://localhost:$PORT 测试${NC}"
+    # 启动服务
+    if [ "$(id -u)" = "0" ]; then
+        # 使用systemd启动
+        if command -v systemctl &> /dev/null; then
+            create_service_file
+            systemctl daemon-reload
+            systemctl start "$SERVICE_NAME"
+            
+            # 检查启动状态
+            if systemctl is-active --quiet "$SERVICE_NAME"; then
+                echo -e "${GREEN}面板启动成功${NC}"
+                # 显示访问地址
+                echo -e "${BLUE}面板访问地址:${NC} http://$(hostname -I | awk '{print $1}'):$PORT"
+                # 在防火墙中开放端口
+                if command -v firewall-cmd &> /dev/null; then
+                    firewall-cmd --zone=public --add-port=$PORT/tcp --permanent >/dev/null 2>&1
+                    firewall-cmd --reload >/dev/null 2>&1
+                    echo -e "${BLUE}已更新防火墙规则端口 $PORT${NC}"
+                elif command -v ufw &> /dev/null; then
+                    ufw allow $PORT/tcp >/dev/null 2>&1
+                    echo -e "${BLUE}已更新防火墙规则端口 $PORT${NC}"
+                fi
+            else
+                echo -e "${RED}面板启动失败，请查看日志文件: $LOG_DIR/panel.log${NC}"
+                echo -e "${YELLOW}日志最后几行:${NC}"
+                tail -n 10 "$LOG_DIR/panel.log"
+            fi
+        else
+            # 使用nohup启动
+            cd "$BASE_DIR" || return
+            nohup "$BIN_DIR/$BIN_NAME" > "$LOG_DIR/panel.log" 2>&1 &
+            echo $! > "$BASE_DIR/panel.pid"
+            
+            # 等待服务启动
+            echo -e "${BLUE}等待服务启动...${NC}"
+            sleep 3
+            
+            # 检查启动状态
+            if ps -p "$(cat "$BASE_DIR/panel.pid" 2>/dev/null)" > /dev/null 2>&1; then
+                echo -e "${GREEN}面板启动成功${NC}"
+                # 显示访问地址
+                echo -e "${BLUE}面板访问地址:${NC} http://$(hostname -I | awk '{print $1}'):$PORT"
+                # 在防火墙中开放端口
+                if command -v firewall-cmd &> /dev/null; then
+                    firewall-cmd --zone=public --add-port=$PORT/tcp --permanent >/dev/null 2>&1
+                    firewall-cmd --reload >/dev/null 2>&1
+                    echo -e "${BLUE}已更新防火墙规则端口 $PORT${NC}"
+                elif command -v ufw &> /dev/null; then
+                    ufw allow $PORT/tcp >/dev/null 2>&1
+                    echo -e "${BLUE}已更新防火墙规则端口 $PORT${NC}"
+                fi
+            else
+                echo -e "${RED}面板启动失败，请查看日志文件: $LOG_DIR/panel.log${NC}"
+                echo -e "${YELLOW}日志最后几行:${NC}"
+                tail -n 10 "$LOG_DIR/panel.log"
+            fi
+        fi
     else
-        echo -e "${RED}面板启动失败，请查看日志文件: $LOG_FILE${NC}"
-        # 显示日志最后几行
-        if [ -f "$LOG_FILE" ]; then
+        # 普通用户启动
+        cd "$BASE_DIR" || return
+        nohup "$BIN_DIR/$BIN_NAME" > "$LOG_DIR/panel.log" 2>&1 &
+        echo $! > "$BASE_DIR/panel.pid"
+        
+        # 等待服务启动
+        echo -e "${BLUE}等待服务启动...${NC}"
+        sleep 3
+        
+        # 检查启动状态
+        if ps -p "$(cat "$BASE_DIR/panel.pid" 2>/dev/null)" > /dev/null 2>&1; then
+            echo -e "${GREEN}面板启动成功${NC}"
+            # 显示访问地址
+            echo -e "${BLUE}面板访问地址:${NC} http://$(hostname -I | awk '{print $1}'):$PORT"
+        else
+            echo -e "${RED}面板启动失败，请查看日志文件: $LOG_DIR/panel.log${NC}"
             echo -e "${YELLOW}日志最后几行:${NC}"
-            tail -n 10 "$LOG_FILE"
+            tail -n 10 "$LOG_DIR/panel.log"
         fi
     fi
 }
@@ -596,28 +681,55 @@ start_panel() {
 stop_panel() {
     echo -e "${BLUE}停止泰拉瑞亚管理面板...${NC}"
     
-    if [ "$(id -u)" = "0" ]; then
+    # 检查面板是否通过systemd运行
+    if [ "$(id -u)" = "0" ] && command -v systemctl &> /dev/null && systemctl is-active --quiet "$SERVICE_NAME"; then
         systemctl stop "$SERVICE_NAME"
         echo -e "${GREEN}面板已停止${NC}"
     else
+        # 获取端口上运行的进程
+        PORT_PID=$(lsof -t -i:$PORT 2>/dev/null)
+        
+        # 检查PID文件
         if [ -f "$BASE_DIR/panel.pid" ]; then
-            PID=$(cat "$BASE_DIR/panel.pid")
-            if ps -p "$PID" > /dev/null; then
-                kill "$PID"
-                echo -e "${GREEN}面板已停止，PID: $PID${NC}"
-            else
-                echo -e "${YELLOW}面板未运行${NC}"
-            fi
-            rm -f "$BASE_DIR/panel.pid"
-        else
-            PID=$(ps -ef | grep "$BIN_NAME" | grep -v grep | awk '{print $2}')
+            PID=$(cat "$BASE_DIR/panel.pid" 2>/dev/null)
             if [ -n "$PID" ]; then
-                kill "$PID"
-                echo -e "${GREEN}面板已停止，PID: $PID${NC}"
-            else
-                echo -e "${YELLOW}面板未运行${NC}"
+                kill "$PID" 2>/dev/null
+                sleep 1
+                # 如果进程仍在运行，强制终止
+                if ps -p "$PID" > /dev/null 2>&1; then
+                    kill -9 "$PID" 2>/dev/null
+                fi
+                rm -f "$BASE_DIR/panel.pid"
             fi
         fi
+        
+        # 如果通过端口找到了进程，也尝试终止
+        if [ -n "$PORT_PID" ]; then
+            kill "$PORT_PID" 2>/dev/null
+            sleep 1
+            # 如果进程仍在运行，强制终止
+            if ps -p "$PORT_PID" > /dev/null 2>&1; then
+                kill -9 "$PORT_PID" 2>/dev/null
+            fi
+        fi
+        
+        # 查找任何可能的面板进程
+        NODE_PIDS=$(ps -ef | grep "$BIN_NAME" | grep -v grep | awk '{print $2}')
+        if [ -n "$NODE_PIDS" ]; then
+            for pid in $NODE_PIDS; do
+                kill "$pid" 2>/dev/null
+            done
+            sleep 1
+            # 检查是否仍有进程在运行
+            REMAINING_PIDS=$(ps -ef | grep "$BIN_NAME" | grep -v grep | awk '{print $2}')
+            if [ -n "$REMAINING_PIDS" ]; then
+                for pid in $REMAINING_PIDS; do
+                    kill -9 "$pid" 2>/dev/null
+                done
+            fi
+        fi
+        
+        echo -e "${GREEN}面板已停止${NC}"
     fi
 }
 
