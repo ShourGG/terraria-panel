@@ -385,36 +385,35 @@ EOF
 create_service() {
     echo -e "${BLUE}创建系统服务...${NC}"
     
-    if [ "$(id -u)" != "0" ]; then
-        echo -e "${YELLOW}非root用户，跳过服务创建，请手动启动面板${NC}"
-        return
-    fi
-    
-    cat > "/etc/systemd/system/${SERVICE_NAME}.service" << EOF
+    # 创建systemd服务文件
+    cat > "/etc/systemd/system/$SERVICE_NAME.service" << EOF
 [Unit]
-Description=Terraria Server Management Panel
+Description=Terraria Management Panel
 After=network.target
 
 [Service]
 Type=simple
 User=$USER
-ExecStart=$BIN_DIR/$BIN_NAME -c -l $PORT -d $PANEL_DIR
-WorkingDirectory=$BASE_DIR
-Restart=on-failure
-RestartSec=5s
-LimitNOFILE=65535
 Environment="PORT=$PORT"
+ExecStart=$BIN_DIR/$BIN_NAME
+WorkingDirectory=$BIN_DIR
+Restart=on-failure
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=$SERVICE_NAME
 
 [Install]
 WantedBy=multi-user.target
 EOF
     
+    # 重新加载systemd配置
     systemctl daemon-reload
     systemctl enable "$SERVICE_NAME"
     
     # 添加防火墙规则（如果有防火墙）
     if command -v firewall-cmd &> /dev/null; then
-        echo -e "${BLUE}配置防火墙...${NC}"
+        echo -e "${BLUE}配置firewalld防火墙...${NC}"
         firewall-cmd --permanent --add-port=$PORT/tcp
         firewall-cmd --reload
         echo -e "${GREEN}已开放防火墙端口 $PORT${NC}"
@@ -430,7 +429,7 @@ EOF
             service iptables save
         elif [ -f /etc/debian_version ]; then
             # Debian/Ubuntu
-            iptables-save > /etc/iptables/rules.v4
+            iptables-save > /etc/iptables/rules.v4 2>/dev/null || echo -e "${YELLOW}无法保存iptables规则，可能需要手动保存${NC}"
         fi
         echo -e "${GREEN}已开放防火墙端口 $PORT${NC}"
     fi
@@ -505,6 +504,11 @@ start_panel() {
     
     # 启动面板
     cd "$BIN_DIR" || { echo -e "${RED}无法进入目录 $BIN_DIR${NC}"; return 1; }
+    
+    # 确保PORT环境变量被正确设置
+    export PORT=$PORT
+    
+    # 使用环境变量启动Node.js程序
     nohup node "$BIN_NAME" > "$LOG_FILE" 2>&1 &
     echo $! > "$BASE_DIR/panel.pid"
     
