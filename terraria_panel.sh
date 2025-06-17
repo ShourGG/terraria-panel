@@ -126,26 +126,26 @@ download_panel() {
     # 创建临时目录
     TMP_DIR=$(mktemp -d)
     
-    # 尝试从GitHub下载
+    # 尝试从GitHub下载，设置超时为15秒
     echo -e "${BLUE}尝试从GitHub下载: ${GITHUB_URL}${NC}"
     GITHUB_FAILED=false
     if command -v wget &> /dev/null; then
-        wget -O "$TMP_DIR/panel.zip" "$GITHUB_URL" || GITHUB_FAILED=true
+        wget --timeout=15 --tries=2 -O "$TMP_DIR/panel.zip" "$GITHUB_URL" || GITHUB_FAILED=true
     else
-        curl -L -o "$TMP_DIR/panel.zip" "$GITHUB_URL" || GITHUB_FAILED=true
+        curl -m 15 -L -o "$TMP_DIR/panel.zip" "$GITHUB_URL" || GITHUB_FAILED=true
     fi
     
     # 检查下载是否成功
     if [ "$GITHUB_FAILED" = "true" ] || [ ! -s "$TMP_DIR/panel.zip" ]; then
-        echo -e "${YELLOW}从GitHub下载失败，尝试从Gitee下载...${NC}"
+        echo -e "${YELLOW}从GitHub下载失败或超时，尝试从Gitee下载...${NC}"
         
         # 尝试从Gitee下载
         echo -e "${BLUE}下载地址: ${GITEE_URL}${NC}"
         GITEE_FAILED=false
         if command -v wget &> /dev/null; then
-            wget -O "$TMP_DIR/panel.zip" "$GITEE_URL" || GITEE_FAILED=true
+            wget --timeout=15 --tries=2 -O "$TMP_DIR/panel.zip" "$GITEE_URL" || GITEE_FAILED=true
         else
-            curl -L -o "$TMP_DIR/panel.zip" "$GITEE_URL" || GITEE_FAILED=true
+            curl -m 15 -L -o "$TMP_DIR/panel.zip" "$GITEE_URL" || GITEE_FAILED=true
         fi
     fi
     
@@ -607,25 +607,81 @@ update_panel() {
     echo -e "${GREEN}面板更新完成${NC}"
 }
 
-# 强制更新
-force_update() {
+# 强制更新面板
+force_update_panel() {
     echo -e "${BLUE}强制更新泰拉瑞亚管理面板...${NC}"
-    stop_panel
-    # 备份配置
-    if [ -d "$CONFIG_DIR" ]; then
-        mkdir -p "$BASE_DIR/backup/config_$(date +%Y%m%d%H%M%S)"
-        cp -r "$CONFIG_DIR/"* "$BASE_DIR/backup/config_$(date +%Y%m%d%H%M%S)/"
+    
+    # 创建临时目录
+    TMP_DIR=$(mktemp -d)
+    
+    # 尝试从GitHub下载
+    echo -e "${BLUE}尝试从GitHub下载: ${GITHUB_URL}${NC}"
+    GITHUB_FAILED=false
+    if command -v wget &> /dev/null; then
+        wget --timeout=15 --tries=2 -O "$TMP_DIR/panel.zip" "$GITHUB_URL" || GITHUB_FAILED=true
+    else
+        curl -m 15 -L -o "$TMP_DIR/panel.zip" "$GITHUB_URL" || GITHUB_FAILED=true
     fi
-    # 备份数据
-    if [ -d "$PANEL_DIR" ]; then
-        mkdir -p "$BASE_DIR/backup/data_$(date +%Y%m%d%H%M%S)"
-        cp -r "$PANEL_DIR/"* "$BASE_DIR/backup/data_$(date +%Y%m%d%H%M%S)/"
+    
+    # 检查下载是否成功
+    if [ "$GITHUB_FAILED" = "true" ] || [ ! -s "$TMP_DIR/panel.zip" ]; then
+        echo -e "${YELLOW}从GitHub下载失败或超时，尝试从Gitee下载...${NC}"
+        
+        # 尝试从Gitee下载
+        echo -e "${BLUE}下载地址: ${GITEE_URL}${NC}"
+        GITEE_FAILED=false
+        if command -v wget &> /dev/null; then
+            wget --timeout=15 --tries=2 -O "$TMP_DIR/panel.zip" "$GITEE_URL" || GITEE_FAILED=true
+        else
+            curl -m 15 -L -o "$TMP_DIR/panel.zip" "$GITEE_URL" || GITEE_FAILED=true
+        fi
     fi
-    # 删除旧文件
-    rm -f "$BIN_DIR/$BIN_NAME"
-    download_panel
-    start_panel
-    echo -e "${GREEN}面板强制更新完成${NC}"
+    
+    # 验证zip文件
+    if [ -s "$TMP_DIR/panel.zip" ] && unzip -t "$TMP_DIR/panel.zip" &> /dev/null; then
+        echo -e "${GREEN}下载成功${NC}"
+        
+        # 解压面板
+        unzip -o "$TMP_DIR/panel.zip" -d "$TMP_DIR"
+        
+        # 检查必要的文件是否存在
+        if [ -f "$TMP_DIR/server.js" ]; then
+            mkdir -p "$BIN_DIR"
+            # 移动面板程序
+            cp "$TMP_DIR/server.js" "$BIN_DIR/$BIN_NAME"
+            chmod +x "$BIN_DIR/$BIN_NAME"
+            
+            # 移动其他文件
+            if [ -f "$TMP_DIR/package.json" ]; then
+                cp "$TMP_DIR/package.json" "$BASE_DIR/"
+            fi
+            
+            # 确保Node.js依赖安装
+            if [ -f "$BASE_DIR/package.json" ]; then
+                cd "$BASE_DIR" || return
+                if command -v npm &> /dev/null; then
+                    echo -e "${BLUE}安装Node.js依赖...${NC}"
+                    npm install --production
+                elif command -v yarn &> /dev/null; then
+                    echo -e "${BLUE}安装Node.js依赖...${NC}"
+                    yarn install --production
+                else
+                    echo -e "${YELLOW}警告: 未安装npm或yarn，跳过依赖安装${NC}"
+                fi
+            fi
+        else
+            echo -e "${RED}解压后未找到server.js文件，使用备用方法...${NC}"
+            create_simple_server "$BIN_DIR/$BIN_NAME"
+        fi
+    else
+        echo -e "${YELLOW}下载失败或文件不是有效的zip格式，使用备用方法...${NC}"
+        create_simple_server "$BIN_DIR/$BIN_NAME"
+    fi
+    
+    # 清理临时目录
+    rm -rf "$TMP_DIR"
+    
+    echo -e "${GREEN}下载完成${NC}"
 }
 
 # 更新启动脚本
@@ -636,19 +692,21 @@ update_script() {
     cp "$0" "${0}.backup_$(date +%Y%m%d%H%M%S)"
     
     echo -e "${BLUE}从GitHub下载最新脚本...${NC}"
+    GITHUB_FAILED=false
     if command -v wget &> /dev/null; then
-        wget -O "$0.new" "https://raw.githubusercontent.com/$GITHUB_REPO/main/terraria_panel.sh" || GITHUB_FAILED=true
+        wget --timeout=15 --tries=2 -O "$0.new" "https://raw.githubusercontent.com/$GITHUB_REPO/main/terraria_panel.sh" || GITHUB_FAILED=true
     else
-        curl -L -o "$0.new" "https://raw.githubusercontent.com/$GITHUB_REPO/main/terraria_panel.sh" || GITHUB_FAILED=true
+        curl -m 15 -L -o "$0.new" "https://raw.githubusercontent.com/$GITHUB_REPO/main/terraria_panel.sh" || GITHUB_FAILED=true
     fi
     
     # 如果从GitHub下载失败，尝试从Gitee下载
     if [ "$GITHUB_FAILED" = "true" ] || [ ! -s "$0.new" ]; then
-        echo -e "${YELLOW}从GitHub下载失败，尝试从Gitee下载...${NC}"
+        echo -e "${YELLOW}从GitHub下载失败或超时，尝试从Gitee下载...${NC}"
+        GITEE_FAILED=false
         if command -v wget &> /dev/null; then
-            wget -O "$0.new" "https://gitee.com/$GITEE_REPO/raw/main/terraria_panel.sh" || GITEE_FAILED=true
+            wget --timeout=15 --tries=2 -O "$0.new" "https://gitee.com/$GITEE_REPO/raw/main/terraria_panel.sh" || GITEE_FAILED=true
         else
-            curl -L -o "$0.new" "https://gitee.com/$GITEE_REPO/raw/main/terraria_panel.sh" || GITEE_FAILED=true
+            curl -m 15 -L -o "$0.new" "https://gitee.com/$GITEE_REPO/raw/main/terraria_panel.sh" || GITEE_FAILED=true
         fi
     fi
     
@@ -799,7 +857,7 @@ show_menu() {
             update_panel
             ;;
         6)
-            force_update
+            force_update_panel
             ;;
         7)
             update_script
