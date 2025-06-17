@@ -3,27 +3,30 @@
 # 泰拉瑞亚服务器管理面板 - 一键安装脚本
 # 参考DMP项目 https://github.com/miracleEverywhere/dst-management-platform-api
 
-# 颜色定义
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-BOLD='\033[1m'
-NC='\033[0m' # 恢复默认
-
-# 配置信息
+# 全局变量
 VERSION="1.0.0"
-PORT=80
-PANEL_NAME="terrariaPanel"
 GITHUB_REPO="ShourGG/terraria-panel"
 DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/raw/main/terraria_panel_files.zip"
 BASE_DIR="$HOME/terrariaPanel"
 BIN_DIR="$BASE_DIR/bin"
 CONFIG_DIR="$BASE_DIR/config"
 LOGS_DIR="$BASE_DIR/logs"
-DATA_DIR="$BASE_DIR/data"
+PANEL_DIR="$BASE_DIR/panel"
+BIN_NAME="server.js"
+PANEL_NAME="terrariaPanel"
 SERVICE_NAME="terraria-panel"
-BIN_NAME="terraria-panel"
+PORT=80
+LOG_FILE="$LOGS_DIR/panel.log"
+
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # 恢复默认颜色
 
 # 检查是否为root用户
 check_root() {
@@ -34,7 +37,7 @@ check_root() {
 
 # 创建必要目录
 create_directories() {
-    mkdir -p "$BIN_DIR" "$CONFIG_DIR" "$LOGS_DIR" "$DATA_DIR"
+    mkdir -p "$BIN_DIR" "$CONFIG_DIR" "$LOGS_DIR" "$PANEL_DIR"
     echo -e "${GREEN}目录创建完成${NC}"
 }
 
@@ -117,11 +120,6 @@ change_port() {
 download_panel() {
     echo -e "${BLUE}开始下载泰拉瑞亚管理面板...${NC}"
     
-    if [ -f "$BIN_DIR/$BIN_NAME" ]; then
-        echo -e "${YELLOW}检测到已存在的面板程序，将进行备份${NC}"
-        mv "$BIN_DIR/$BIN_NAME" "$BIN_DIR/${BIN_NAME}_backup_$(date +%Y%m%d%H%M%S)"
-    fi
-    
     # 创建临时目录
     TMP_DIR=$(mktemp -d)
     
@@ -141,13 +139,34 @@ download_panel() {
         # 解压面板
         unzip -o "$TMP_DIR/panel.zip" -d "$TMP_DIR"
         
-        # 移动文件
-        cp "$TMP_DIR/$BIN_NAME" "$BIN_DIR/"
-        chmod +x "$BIN_DIR/$BIN_NAME"
-        
-        # 移动配置文件(如果有)
-        if [ -d "$TMP_DIR/config" ]; then
-            cp -r "$TMP_DIR/config/"* "$CONFIG_DIR/"
+        # 检查必要的文件是否存在
+        if [ -f "$TMP_DIR/server.js" ]; then
+            mkdir -p "$BIN_DIR"
+            # 移动面板程序
+            cp "$TMP_DIR/server.js" "$BIN_DIR/$BIN_NAME"
+            chmod +x "$BIN_DIR/$BIN_NAME"
+            
+            # 移动其他文件
+            if [ -f "$TMP_DIR/package.json" ]; then
+                cp "$TMP_DIR/package.json" "$BASE_DIR/"
+            fi
+            
+            # 确保Node.js依赖安装
+            if [ -f "$BASE_DIR/package.json" ]; then
+                cd "$BASE_DIR" || return
+                if command -v npm &> /dev/null; then
+                    echo -e "${BLUE}安装Node.js依赖...${NC}"
+                    npm install --production
+                elif command -v yarn &> /dev/null; then
+                    echo -e "${BLUE}安装Node.js依赖...${NC}"
+                    yarn install --production
+                else
+                    echo -e "${YELLOW}警告: 未安装npm或yarn，跳过依赖安装${NC}"
+                fi
+            fi
+        else
+            echo -e "${RED}解压后未找到server.js文件，使用备用方法...${NC}"
+            create_simple_server "$BIN_DIR/$BIN_NAME"
         fi
     fi
     
@@ -159,7 +178,7 @@ download_panel() {
 
 # 创建简单的Node.js服务器程序（备用方法）
 create_simple_server() {
-    local server_path=$1
+    local server_path="${1:-$BIN_DIR/$BIN_NAME}"
     
     echo -e "${BLUE}创建简易服务器程序...${NC}"
     
@@ -178,15 +197,20 @@ create_simple_server() {
         fi
     fi
     
-    # 创建简单的Express服务器
+    # 确保目录存在
     mkdir -p "$(dirname "$server_path")"
+    
+    # 创建简单的Express服务器
     cat > "$server_path" << 'EOF'
 #!/usr/bin/env node
 
 const http = require('http');
 const os = require('os');
 const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
+// 获取端口号，默认为80
 const PORT = process.env.PORT || 80;
 
 // 创建HTTP服务器
@@ -318,28 +342,42 @@ server.listen(PORT, '0.0.0.0', () => {
   
   // 获取所有网络接口
   const interfaces = os.networkInterfaces();
-  console.log('可通过以下地址访问:');
+  
+  console.log('面板可通过以下地址访问:');
+  // 显示所有网络接口的IP地址
   Object.keys(interfaces).forEach((iface) => {
     interfaces[iface].forEach((details) => {
       if (details.family === 'IPv4' && !details.internal) {
-        console.log(`  http://${details.address}:${PORT}`);
+        console.log(`http://${details.address}:${PORT}`);
       }
     });
   });
-  console.log(`  http://localhost:${PORT} (本地访问)`);
-});
-
-// 处理进程终止信号
-process.on('SIGINT', () => {
-  console.log('正在关闭服务器...');
-  server.close(() => {
-    console.log('服务器已关闭');
-    process.exit(0);
-  });
+  
+  console.log(`http://localhost:${PORT} (本地访问)`);
 });
 EOF
     
+    # 设置可执行权限
     chmod +x "$server_path"
+    
+    # 创建package.json
+    if [ ! -f "$(dirname "$server_path")/../package.json" ]; then
+        cat > "$(dirname "$server_path")/../package.json" << 'EOF'
+{
+  "name": "terraria-panel",
+  "version": "1.0.0",
+  "description": "泰拉瑞亚服务器管理面板",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+EOF
+    fi
+    
     echo -e "${GREEN}简易服务器程序创建完成${NC}"
 }
 
@@ -360,7 +398,7 @@ After=network.target
 [Service]
 Type=simple
 User=$USER
-ExecStart=$BIN_DIR/$BIN_NAME -c -l $PORT -d $DATA_DIR
+ExecStart=$BIN_DIR/$BIN_NAME -c -l $PORT -d $PANEL_DIR
 WorkingDirectory=$BASE_DIR
 Restart=on-failure
 RestartSec=5s
@@ -467,7 +505,7 @@ start_panel() {
     
     # 启动面板
     cd "$BIN_DIR" || { echo -e "${RED}无法进入目录 $BIN_DIR${NC}"; return 1; }
-    nohup node "$BIN_NAME" > "$LOGS_DIR/panel.log" 2>&1 &
+    nohup node "$BIN_NAME" > "$LOG_FILE" 2>&1 &
     echo $! > "$BASE_DIR/panel.pid"
     
     # 等待服务启动
@@ -490,11 +528,11 @@ start_panel() {
         echo -e "  5. ${YELLOW}检查服务器是否有安全组或网络ACL限制${NC}"
         echo -e "  6. ${YELLOW}尝试从服务器本地使用 curl http://localhost:$PORT 测试${NC}"
     else
-        echo -e "${RED}面板启动失败，请查看日志文件: $LOGS_DIR/panel.log${NC}"
+        echo -e "${RED}面板启动失败，请查看日志文件: $LOG_FILE${NC}"
         # 显示日志最后几行
-        if [ -f "$LOGS_DIR/panel.log" ]; then
+        if [ -f "$LOG_FILE" ]; then
             echo -e "${YELLOW}日志最后几行:${NC}"
-            tail -n 10 "$LOGS_DIR/panel.log"
+            tail -n 10 "$LOG_FILE"
         fi
     fi
 }
@@ -555,9 +593,9 @@ force_update() {
         cp -r "$CONFIG_DIR/"* "$BASE_DIR/backup/config_$(date +%Y%m%d%H%M%S)/"
     fi
     # 备份数据
-    if [ -d "$DATA_DIR" ]; then
+    if [ -d "$PANEL_DIR" ]; then
         mkdir -p "$BASE_DIR/backup/data_$(date +%Y%m%d%H%M%S)"
-        cp -r "$DATA_DIR/"* "$BASE_DIR/backup/data_$(date +%Y%m%d%H%M%S)/"
+        cp -r "$PANEL_DIR/"* "$BASE_DIR/backup/data_$(date +%Y%m%d%H%M%S)/"
     fi
     # 删除旧文件
     rm -f "$BIN_DIR/$BIN_NAME"
