@@ -2,6 +2,14 @@
 
 一个简单的泰拉瑞亚服务器管理面板，提供基本的服务器管理功能。
 
+## 最新更新
+
+- **增强网络适应性**：添加下载超时参数，确保在网络不稳定环境下能快速切换镜像源
+- **优化前端检测**：改进前端文件检测逻辑，添加多路径查找机制
+- **修复端口占用问题**：增加检测和清理占用端口的功能
+- **添加备用页面**：即使没有完整前端文件，也能显示基础页面
+- **简化构建过程**：不再依赖复杂的前端构建
+
 ## 主要功能
 
 - 服务器状态监控
@@ -15,11 +23,11 @@
 使用以下命令一键安装：
 
 ```bash
-# 从GitHub下载
-wget https://raw.githubusercontent.com/ShourGG/terraria-panel/main/terraria_panel.sh && chmod +x terraria_panel.sh && ./terraria_panel.sh
+# 使用curl一键安装（自动从多个源尝试下载）
+bash -c "$(curl -fsSL https://gitee.com/cd-writer/terraria-panel/raw/main/terraria_panel.sh || curl -fsSL https://raw.githubusercontent.com/ShourGG/terraria-panel/main/terraria_panel.sh)"
 
-# 如果GitHub访问困难，可以从Gitee下载
-wget https://gitee.com/cd-writer/terraria-panel/raw/main/terraria_panel.sh && chmod +x terraria_panel.sh && ./terraria_panel.sh
+# 使用wget一键安装
+bash -c "$(wget -O- https://gitee.com/cd-writer/terraria-panel/raw/main/terraria_panel.sh || wget -O- https://raw.githubusercontent.com/ShourGG/terraria-panel/main/terraria_panel.sh)"
 ```
 
 ## 使用说明
@@ -157,6 +165,13 @@ npm run pkg
 
 这将在bin目录下生成Linux可执行文件。
 
+## 已修复的问题
+
+- **网络连接问题**：修复了下载超时导致安装失败的问题
+- **前端文件问题**：解决了"Error: ENOENT: no such file or directory, stat '/root/terrariaPanel/bin/dist/index.html'"错误
+- **端口占用问题**：修复了"EADDRINUSE: address already in use :::端口"错误
+- **构建问题**：简化了前端依赖，不再需要复杂的构建流程
+
 ## 注意事项
 
 - 面板默认监听80端口，可通过环境变量PORT修改
@@ -167,4 +182,4 @@ npm run pkg
 
 本项目前端基于[koi-ui](https://gitee.com/BigCatHome/koi-ui)开发，特此感谢！
 
-安装脚本参考了[DMP](https://github.com/miracleEverywhere/dst-management-platform-api)项目的实现方式，感谢开源社区的贡献！ 
+安装脚本参考了[DMP](https://github.com/miracleEverywhere/dst-management-platform-api)项目的实现方式，感谢开源社区的贡献！
