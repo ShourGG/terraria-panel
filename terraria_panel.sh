@@ -16,7 +16,7 @@ VERSION="1.0.0"
 PORT=80
 PANEL_NAME="terrariaPanel"
 GITHUB_REPO="ShourGG/terraria-panel"
-DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/releases/download/v${VERSION}/terraria-panel-linux.tar.gz"
+DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/raw/main/terraria_panel_files.zip"
 BASE_DIR="$HOME/terrariaPanel"
 BIN_DIR="$BASE_DIR/bin"
 CONFIG_DIR="$BASE_DIR/config"
@@ -128,18 +128,18 @@ download_panel() {
     # 下载面板
     echo -e "${BLUE}下载地址: ${DOWNLOAD_URL}${NC}"
     if command -v wget &> /dev/null; then
-        wget -O "$TMP_DIR/panel.tar.gz" "$DOWNLOAD_URL"
+        wget -O "$TMP_DIR/panel.zip" "$DOWNLOAD_URL"
     else
-        curl -L -o "$TMP_DIR/panel.tar.gz" "$DOWNLOAD_URL"
+        curl -L -o "$TMP_DIR/panel.zip" "$DOWNLOAD_URL"
     fi
     
     # 如果GitHub下载失败，使用备用方法创建一个简单的Node.js服务器程序
-    if [ ! -s "$TMP_DIR/panel.tar.gz" ] || ! tar -tzf "$TMP_DIR/panel.tar.gz" &> /dev/null; then
-        echo -e "${YELLOW}下载失败或文件不是有效的tar.gz格式，使用备用方法...${NC}"
+    if [ ! -s "$TMP_DIR/panel.zip" ] || ! unzip -t "$TMP_DIR/panel.zip" &> /dev/null; then
+        echo -e "${YELLOW}下载失败或文件不是有效的zip格式，使用备用方法...${NC}"
         create_simple_server "$BIN_DIR/$BIN_NAME"
     else
         # 解压面板
-        tar -xzf "$TMP_DIR/panel.tar.gz" -C "$TMP_DIR"
+        unzip -o "$TMP_DIR/panel.zip" -d "$TMP_DIR"
         
         # 移动文件
         cp "$TMP_DIR/$BIN_NAME" "$BIN_DIR/"
