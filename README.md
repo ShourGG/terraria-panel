@@ -1,6 +1,72 @@
 # 泰拉瑞亚服务器管理面板
 
-一个简单易用的泰拉瑞亚服务器管理面板，支持通过网页界面远程管理Linux服务器。
+一个简单的泰拉瑞亚服务器管理面板，提供基本的服务器管理功能。
+
+## 主要功能
+
+- 服务器状态监控
+- 系统资源查看
+- 进程管理
+- 文件管理
+- 服务控制
+
+## 快速安装
+
+使用以下命令一键安装：
+
+```bash
+# 从GitHub下载
+wget https://raw.githubusercontent.com/ShourGG/terraria-panel/main/terraria_panel.sh && chmod +x terraria_panel.sh && ./terraria_panel.sh
+
+# 如果GitHub访问困难，可以从Gitee下载
+wget https://gitee.com/ShourGG/terraria-panel/raw/main/terraria_panel.sh && chmod +x terraria_panel.sh && ./terraria_panel.sh
+```
+
+## 使用说明
+
+安装完成后，可以通过以下选项管理泰拉瑞亚服务器：
+
+- `[0]`: 下载并启动服务
+- `[1]`: 启动服务
+- `[2]`: 关闭服务
+- `[3]`: 重启服务
+- `[4]`: 修改端口
+- `[5]`: 更新管理平台
+- `[6]`: 强制更新平台
+- `[7]`: 更新启动脚本
+- `[8]`: 设置虚拟内存
+- `[9]`: 查看面板状态
+- `[10]`: 退出脚本
+
+## 下载源
+
+本项目支持从多个源下载：
+
+- GitHub: https://github.com/ShourGG/terraria-panel
+- Gitee: https://gitee.com/ShourGG/terraria-panel
+
+安装脚本会自动尝试从GitHub下载，如果失败则从Gitee下载。
+
+## 系统要求
+
+- Linux系统
+- Node.js 12+
+- 支持的Linux发行版: Ubuntu, Debian, CentOS, RHEL
+
+## 常见问题排查
+
+如果无法访问面板，请检查以下几点：
+
+1. 确保防火墙允许访问面板端口
+2. 如果使用云服务器，需要在控制台开放相应端口
+3. 尝试使用HTTP而非HTTPS访问 (http://IP:端口)
+4. 在访问链接中明确指定协议，例如 'http://'
+5. 检查服务器是否有安全组或网络ACL限制
+6. 尝试从服务器本地使用 curl http://localhost:端口 测试
+
+## 许可证
+
+MIT License
 
 ## 功能特点
 
@@ -96,10 +162,6 @@ npm run pkg
 - 面板默认监听80端口，可通过环境变量PORT修改
 - 为安全起见，建议配置防火墙只允许特定IP访问
 - 某些功能需要root权限才能正常使用
-
-## 许可证
-
-MIT
 
 ## 致谢
 

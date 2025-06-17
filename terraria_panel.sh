@@ -6,7 +6,10 @@
 # 全局变量
 VERSION="1.0.0"
 GITHUB_REPO="ShourGG/terraria-panel"
-DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/raw/main/terraria_panel_files.zip"
+GITEE_REPO="ShourGG/terraria-panel"
+GITHUB_URL="https://github.com/${GITHUB_REPO}/raw/main/terraria_panel_files.zip"
+GITEE_URL="https://gitee.com/${GITEE_REPO}/raw/main/terraria_panel_files.zip"
+DOWNLOAD_URL="$GITHUB_URL"
 BASE_DIR="$HOME/terrariaPanel"
 BIN_DIR="$BASE_DIR/bin"
 CONFIG_DIR="$BASE_DIR/config"
@@ -123,16 +126,27 @@ download_panel() {
     # 创建临时目录
     TMP_DIR=$(mktemp -d)
     
-    # 下载面板
-    echo -e "${BLUE}下载地址: ${DOWNLOAD_URL}${NC}"
+    # 尝试从GitHub下载
+    echo -e "${BLUE}尝试从GitHub下载: ${GITHUB_URL}${NC}"
     if command -v wget &> /dev/null; then
-        wget -O "$TMP_DIR/panel.zip" "$DOWNLOAD_URL"
+        wget -O "$TMP_DIR/panel.zip" "$GITHUB_URL" || GITHUB_FAILED=true
     else
-        curl -L -o "$TMP_DIR/panel.zip" "$DOWNLOAD_URL"
+        curl -L -o "$TMP_DIR/panel.zip" "$GITHUB_URL" || GITHUB_FAILED=true
     fi
     
-    # 如果GitHub下载失败，使用备用方法创建一个简单的Node.js服务器程序
-    if [ ! -s "$TMP_DIR/panel.zip" ] || ! unzip -t "$TMP_DIR/panel.zip" &> /dev/null; then
+    # 如果GitHub下载失败，尝试从Gitee下载
+    if [ "$GITHUB_FAILED" = "true" ] || [ ! -s "$TMP_DIR/panel.zip" ] || ! unzip -t "$TMP_DIR/panel.zip" &> /dev/null; then
+        echo -e "${YELLOW}从GitHub下载失败，尝试从Gitee下载...${NC}"
+        echo -e "${BLUE}下载地址: ${GITEE_URL}${NC}"
+        if command -v wget &> /dev/null; then
+            wget -O "$TMP_DIR/panel.zip" "$GITEE_URL" || GITEE_FAILED=true
+        else
+            curl -L -o "$TMP_DIR/panel.zip" "$GITEE_URL" || GITEE_FAILED=true
+        fi
+    fi
+    
+    # 如果两个源都失败，使用备用方法创建简单的Node.js服务器程序
+    if [ "$GITEE_FAILED" = "true" ] || [ ! -s "$TMP_DIR/panel.zip" ] || ! unzip -t "$TMP_DIR/panel.zip" &> /dev/null; then
         echo -e "${YELLOW}下载失败或文件不是有效的zip格式，使用备用方法...${NC}"
         create_simple_server "$BIN_DIR/$BIN_NAME"
     else
