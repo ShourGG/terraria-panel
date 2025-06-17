@@ -622,25 +622,42 @@ force_update() {
     echo -e "${GREEN}面板强制更新完成${NC}"
 }
 
-# 更新脚本
+# 更新启动脚本
 update_script() {
     echo -e "${BLUE}更新启动脚本...${NC}"
     
-    SCRIPT_PATH=$(readlink -f "$0")
+    # 备份当前脚本
+    cp "$0" "${0}.backup_$(date +%Y%m%d%H%M%S)"
     
+    echo -e "${BLUE}从GitHub下载最新脚本...${NC}"
     if command -v wget &> /dev/null; then
-        wget -O "${SCRIPT_PATH}.new" "https://raw.githubusercontent.com/${GITHUB_REPO}/main/terraria_panel.sh"
+        wget -O "$0.new" "https://raw.githubusercontent.com/$GITHUB_REPO/main/terraria_panel.sh" || GITHUB_FAILED=true
     else
-        curl -L -o "${SCRIPT_PATH}.new" "https://raw.githubusercontent.com/${GITHUB_REPO}/main/terraria_panel.sh"
+        curl -L -o "$0.new" "https://raw.githubusercontent.com/$GITHUB_REPO/main/terraria_panel.sh" || GITHUB_FAILED=true
     fi
     
-    if [ -f "${SCRIPT_PATH}.new" ] && [ -s "${SCRIPT_PATH}.new" ]; then
-        chmod +x "${SCRIPT_PATH}.new"
-        mv "${SCRIPT_PATH}.new" "$SCRIPT_PATH"
-        echo -e "${GREEN}脚本更新完成${NC}"
+    # 如果从GitHub下载失败，尝试从Gitee下载
+    if [ "$GITHUB_FAILED" = "true" ] || [ ! -s "$0.new" ]; then
+        echo -e "${YELLOW}从GitHub下载失败，尝试从Gitee下载...${NC}"
+        if command -v wget &> /dev/null; then
+            wget -O "$0.new" "https://gitee.com/$GITEE_REPO/raw/main/terraria_panel.sh" || GITEE_FAILED=true
+        else
+            curl -L -o "$0.new" "https://gitee.com/$GITEE_REPO/raw/main/terraria_panel.sh" || GITEE_FAILED=true
+        fi
+    fi
+    
+    if [ -s "$0.new" ]; then
+        chmod +x "$0.new"
+        mv "$0.new" "$0"
+        echo -e "${GREEN}启动脚本已更新至最新版本${NC}"
+        echo -e "${YELLOW}请重新运行脚本以应用更新${NC}"
+        exit 0
     else
-        echo -e "${RED}脚本下载失败${NC}"
-        rm -f "${SCRIPT_PATH}.new"
+        echo -e "${RED}更新失败，无法下载最新脚本${NC}"
+        echo -e "${YELLOW}您可以手动下载脚本：${NC}"
+        echo -e "${YELLOW}  GitHub: https://raw.githubusercontent.com/$GITHUB_REPO/main/terraria_panel.sh${NC}"
+        echo -e "${YELLOW}  Gitee: https://gitee.com/$GITEE_REPO/raw/main/terraria_panel.sh${NC}"
+        rm -f "$0.new"
     fi
 }
 
@@ -732,6 +749,7 @@ show_menu() {
     clear
     echo -e "${BOLD}${GREEN}泰拉瑞亚服务器管理面板${NC}"
     echo -e "${BLUE}--- https://github.com/${GITHUB_REPO} ---${NC}"
+    echo -e "${BLUE}--- https://gitee.com/${GITEE_REPO} ---${NC}"
     echo -e "${YELLOW}————————————————————————————————————————————————————————————${NC}"
     echo -e "${BOLD}[0]:${NC} 下载并启动服务(Download and start the service)"
     echo -e "${YELLOW}————————————————————————————————————————————————————————————${NC}"
