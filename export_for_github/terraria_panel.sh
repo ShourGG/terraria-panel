@@ -154,6 +154,7 @@ download_panel() {
         echo -e "${GREEN}下载成功${NC}"
         
         # 解压面板
+        echo -e "${BLUE}解压面板文件...${NC}"
         unzip -o "$TMP_DIR/panel.zip" -d "$TMP_DIR"
         
         # 检查必要的文件是否存在
@@ -162,6 +163,36 @@ download_panel() {
             # 移动面板程序
             cp "$TMP_DIR/server.js" "$BIN_DIR/$BIN_NAME"
             chmod +x "$BIN_DIR/$BIN_NAME"
+            
+            # 确保前端文件目录存在
+            mkdir -p "$BIN_DIR/dist"
+            
+            # 检查并复制前端文件
+            if [ -d "$TMP_DIR/dist" ]; then
+                echo -e "${BLUE}安装前端文件...${NC}"
+                cp -r "$TMP_DIR/dist/"* "$BIN_DIR/dist/"
+            elif [ -d "$TMP_DIR/koi-ui-master/dist" ]; then
+                echo -e "${BLUE}从koi-ui-master目录安装前端文件...${NC}"
+                cp -r "$TMP_DIR/koi-ui-master/dist/"* "$BIN_DIR/dist/"
+            else
+                echo -e "${YELLOW}警告: 未找到前端文件dist目录${NC}"
+                # 尝试查找任何可能的前端文件
+                FOUND_HTML=$(find "$TMP_DIR" -name "*.html" | head -n 1)
+                if [ -n "$FOUND_HTML" ]; then
+                    FOUND_DIR=$(dirname "$FOUND_HTML")
+                    echo -e "${BLUE}找到可能的前端文件，从 $FOUND_DIR 复制...${NC}"
+                    cp -r "$FOUND_DIR/"* "$BIN_DIR/dist/"
+                else
+                    echo -e "${RED}严重: 无法找到任何前端文件，界面可能无法正常工作${NC}"
+                fi
+            fi
+            
+            # 验证index.html是否存在
+            if [ -f "$BIN_DIR/dist/index.html" ]; then
+                echo -e "${GREEN}前端文件安装完成${NC}"
+            else
+                echo -e "${RED}警告: 找不到index.html文件，界面可能无法正常工作${NC}"
+            fi
             
             # 移动其他文件
             if [ -f "$TMP_DIR/package.json" ]; then
@@ -611,6 +642,15 @@ update_panel() {
 force_update_panel() {
     echo -e "${BLUE}强制更新泰拉瑞亚管理面板...${NC}"
     
+    # 停止当前服务
+    stop_panel
+    
+    # 备份配置
+    if [ -d "$CONFIG_DIR" ]; then
+        mkdir -p "$BASE_DIR/backup/config_$(date +%Y%m%d%H%M%S)"
+        cp -r "$CONFIG_DIR/"* "$BASE_DIR/backup/config_$(date +%Y%m%d%H%M%S)/" 2>/dev/null || true
+    fi
+    
     # 创建临时目录
     TMP_DIR=$(mktemp -d)
     
@@ -641,7 +681,13 @@ force_update_panel() {
     if [ -s "$TMP_DIR/panel.zip" ] && unzip -t "$TMP_DIR/panel.zip" &> /dev/null; then
         echo -e "${GREEN}下载成功${NC}"
         
+        # 删除旧文件
+        echo -e "${BLUE}清理旧文件...${NC}"
+        rm -f "$BIN_DIR/$BIN_NAME"
+        rm -rf "$BIN_DIR/dist"
+        
         # 解压面板
+        echo -e "${BLUE}解压面板文件...${NC}"
         unzip -o "$TMP_DIR/panel.zip" -d "$TMP_DIR"
         
         # 检查必要的文件是否存在
@@ -650,6 +696,67 @@ force_update_panel() {
             # 移动面板程序
             cp "$TMP_DIR/server.js" "$BIN_DIR/$BIN_NAME"
             chmod +x "$BIN_DIR/$BIN_NAME"
+            
+            # 确保前端文件目录存在
+            mkdir -p "$BIN_DIR/dist"
+            
+            # 检查并复制前端文件
+            if [ -d "$TMP_DIR/dist" ]; then
+                echo -e "${BLUE}安装前端文件...${NC}"
+                cp -r "$TMP_DIR/dist/"* "$BIN_DIR/dist/"
+            elif [ -d "$TMP_DIR/koi-ui-master/dist" ]; then
+                echo -e "${BLUE}从koi-ui-master目录安装前端文件...${NC}"
+                cp -r "$TMP_DIR/koi-ui-master/dist/"* "$BIN_DIR/dist/"
+            else
+                echo -e "${YELLOW}警告: 未找到前端文件dist目录${NC}"
+                # 尝试查找任何可能的前端文件
+                FOUND_HTML=$(find "$TMP_DIR" -name "*.html" | head -n 1)
+                if [ -n "$FOUND_HTML" ]; then
+                    FOUND_DIR=$(dirname "$FOUND_HTML")
+                    echo -e "${BLUE}找到可能的前端文件，从 $FOUND_DIR 复制...${NC}"
+                    cp -r "$FOUND_DIR/"* "$BIN_DIR/dist/"
+                else
+                    echo -e "${RED}严重: 无法找到任何前端文件，界面可能无法正常工作${NC}"
+                fi
+            fi
+            
+            # 验证index.html是否存在
+            if [ -f "$BIN_DIR/dist/index.html" ]; then
+                echo -e "${GREEN}前端文件安装完成${NC}"
+            else
+                echo -e "${RED}警告: 找不到index.html文件，界面可能无法正常工作${NC}"
+                # 创建一个简单的index.html文件
+                echo -e "${BLUE}创建一个简单的index.html文件...${NC}"
+                mkdir -p "$BIN_DIR/dist"
+                cat > "$BIN_DIR/dist/index.html" << EOF
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>泰拉瑞亚服务器管理面板</title>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+      .container { max-width: 800px; margin: 0 auto; }
+      .error { color: red; margin: 20px 0; }
+      .info { color: blue; margin: 10px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>泰拉瑞亚服务器管理面板</h1>
+      <div class="error">前端文件未能正确加载</div>
+      <p>请尝试以下操作:</p>
+      <ol style="text-align: left;">
+        <li>重启服务</li>
+        <li>重新运行安装脚本</li>
+        <li>选择"强制更新平台"选项</li>
+      </ol>
+      <div class="info">后端API服务正常运行中</div>
+    </div>
+  </body>
+</html>
+EOF
+            fi
             
             # 移动其他文件
             if [ -f "$TMP_DIR/package.json" ]; then
@@ -681,7 +788,10 @@ force_update_panel() {
     # 清理临时目录
     rm -rf "$TMP_DIR"
     
-    echo -e "${GREEN}下载完成${NC}"
+    echo -e "${GREEN}强制更新完成${NC}"
+    
+    # 重新启动服务
+    start_panel
 }
 
 # 更新启动脚本

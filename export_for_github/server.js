@@ -13,7 +13,70 @@ app.use((req, res, next) => {
 });
 
 // 静态文件服务 - 托管前端文件
-app.use(express.static(path.join(__dirname, 'dist')));
+const distPath = path.join(__dirname, 'dist');
+const alternativePaths = [
+  path.join(__dirname, 'dist'),
+  path.join(__dirname, '../dist'),
+  path.join(__dirname, '../../dist'),
+  path.join(process.cwd(), 'dist'),
+  path.join(process.cwd(), '../dist')
+];
+
+// 查找有效的前端文件目录
+let validDistPath = null;
+for (const testPath of alternativePaths) {
+  if (fs.existsSync(testPath) && fs.existsSync(path.join(testPath, 'index.html'))) {
+    validDistPath = testPath;
+    console.log(`找到前端文件目录: ${validDistPath}`);
+    break;
+  }
+}
+
+if (!validDistPath) {
+  console.warn('警告: 未找到前端文件目录, 将使用默认路径');
+  validDistPath = distPath;
+  
+  // 创建默认dist目录和一个简单的index.html文件
+  if (!fs.existsSync(validDistPath)) {
+    try {
+      fs.mkdirSync(validDistPath, { recursive: true });
+      const basicHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>泰拉瑞亚服务器管理面板</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+            .container { max-width: 800px; margin: 0 auto; }
+            .error { color: red; margin: 20px 0; }
+            .info { color: blue; margin: 10px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>泰拉瑞亚服务器管理面板</h1>
+            <div class="error">前端文件未能正确加载</div>
+            <p>请尝试以下操作:</p>
+            <ol style="text-align: left;">
+              <li>重启服务</li>
+              <li>重新运行安装脚本</li>
+              <li>选择"强制更新平台"选项</li>
+            </ol>
+            <div class="info">后端API服务正常运行中</div>
+          </div>
+        </body>
+      </html>`;
+      fs.writeFileSync(path.join(validDistPath, 'index.html'), basicHtml);
+      console.log('已创建基本的index.html文件');
+    } catch (err) {
+      console.error('创建默认前端文件失败:', err);
+    }
+  }
+}
+
+// 使用找到的有效路径
+app.use(express.static(validDistPath));
 
 // API中间件
 app.use(express.json());
@@ -40,7 +103,7 @@ linuxRouter.get('/system/info', (req, res) => {
   }
 
   exec('cat /proc/cpuinfo | grep "model name" | head -n 1', (error, stdout) => {
-    const cpuModel = error ? "未知" : stdout.split(':')[1].trim();
+    const cpuModel = error ? "未知" : stdout.split(':')[1]?.trim() || "未知";
     
     res.json({
       hostname: os.hostname(),
@@ -452,20 +515,18 @@ app.get('*', (req, res) => {
 
 // 启动服务器 - 绑定到所有网络接口
 app.listen(port, '0.0.0.0', () => {
-  console.log(`泰拉瑞亚管理面板服务器启动在端口 ${port}`);
-  
-  // 获取所有网络接口
-  const interfaces = os.networkInterfaces();
-  
-  console.log('面板可通过以下地址访问:');
-  // 显示所有网络接口的IP地址
-  Object.keys(interfaces).forEach((iface) => {
-    interfaces[iface].forEach((details) => {
-      if (details.family === 'IPv4' && !details.internal) {
-        console.log(`http://${details.address}:${port}`);
+  console.log(`泰拉瑞亚服务器管理面板运行在 http://0.0.0.0:${port}`);
+  console.log(`本地访问地址: http://localhost:${port}`);
+  try {
+    const networkInterfaces = os.networkInterfaces();
+    for (const iface of Object.values(networkInterfaces)) {
+      for (const alias of iface) {
+        if (alias.family === 'IPv4' && !alias.internal) {
+          console.log(`网络访问地址: http://${alias.address}:${port}`);
+        }
       }
-    });
-  });
-  
-  console.log(`http://localhost:${port} (本地访问)`);
+    }
+  } catch (e) {
+    console.log('无法获取网络接口信息');
+  }
 }); 

@@ -13,7 +13,70 @@ app.use((req, res, next) => {
 });
 
 // 静态文件服务 - 托管前端文件
-app.use(express.static(path.join(__dirname, 'dist')));
+const distPath = path.join(__dirname, 'dist');
+const alternativePaths = [
+  path.join(__dirname, 'dist'),
+  path.join(__dirname, '../dist'),
+  path.join(__dirname, '../../dist'),
+  path.join(process.cwd(), 'dist'),
+  path.join(process.cwd(), '../dist')
+];
+
+// 查找有效的前端文件目录
+let validDistPath = null;
+for (const testPath of alternativePaths) {
+  if (fs.existsSync(testPath) && fs.existsSync(path.join(testPath, 'index.html'))) {
+    validDistPath = testPath;
+    console.log(`找到前端文件目录: ${validDistPath}`);
+    break;
+  }
+}
+
+if (!validDistPath) {
+  console.warn('警告: 未找到前端文件目录, 将使用默认路径');
+  validDistPath = distPath;
+  
+  // 创建默认dist目录和一个简单的index.html文件
+  if (!fs.existsSync(validDistPath)) {
+    try {
+      fs.mkdirSync(validDistPath, { recursive: true });
+      const basicHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>泰拉瑞亚服务器管理面板</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+            .container { max-width: 800px; margin: 0 auto; }
+            .error { color: red; margin: 20px 0; }
+            .info { color: blue; margin: 10px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>泰拉瑞亚服务器管理面板</h1>
+            <div class="error">前端文件未能正确加载</div>
+            <p>请尝试以下操作:</p>
+            <ol style="text-align: left;">
+              <li>重启服务</li>
+              <li>重新运行安装脚本</li>
+              <li>选择"强制更新平台"选项</li>
+            </ol>
+            <div class="info">后端API服务正常运行中</div>
+          </div>
+        </body>
+      </html>`;
+      fs.writeFileSync(path.join(validDistPath, 'index.html'), basicHtml);
+      console.log('已创建基本的index.html文件');
+    } catch (err) {
+      console.error('创建默认前端文件失败:', err);
+    }
+  }
+}
+
+// 使用找到的有效路径
+app.use(express.static(validDistPath));
 
 // API中间件
 app.use(express.json());
