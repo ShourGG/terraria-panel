@@ -5,8 +5,16 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "mkdir -p dist && cp -r src/html/* dist/ || true",
+    "build": "node -e \"require('fs').existsSync('dist')||require('fs').mkdirSync('dist');require('fs').existsSync('src/html')&&require('fs').readdirSync('src/html').forEach(f=>require('fs').copyFileSync('src/html/'+f,'dist/'+f));\"",
+    "pkg": "pkg . --targets node16-linux-x64 --output bin/terraria-panel",
+    "pkg:win": "pkg . --targets node16-win-x64 --output bin/terraria-panel.exe",
     "postinstall": "npm run build"
+  },
+  "bin": "server.js",
+  "pkg": {
+    "assets": [
+      "dist/**/*"
+    ]
   },
   "dependencies": {
     "express": "^4.18.2"

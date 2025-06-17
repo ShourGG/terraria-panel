@@ -4,7 +4,7 @@
 # 参考DMP项目 https://github.com/miracleEverywhere/dst-management-platform-api
 
 # 全局变量
-VERSION="1.1.0"
+VERSION="1.0.0"
 GITHUB_REPO="ShourGG/terraria-panel"
 GITEE_REPO="cd-writer/terraria-panel"
 GITHUB_URL="https://github.com/${GITHUB_REPO}/raw/main/terraria_panel_files.zip"
@@ -15,14 +15,11 @@ BIN_DIR="$BASE_DIR/bin"
 CONFIG_DIR="$BASE_DIR/config"
 LOGS_DIR="$BASE_DIR/logs"
 PANEL_DIR="$BASE_DIR/panel"
-TERRARIA_DIR="$BASE_DIR/terraria"
 BIN_NAME="server.js"
 PANEL_NAME="terrariaPanel"
 SERVICE_NAME="terraria-panel"
 PORT=80
 LOG_FILE="$LOGS_DIR/panel.log"
-TERRARIA_VERSION="1.4.4.9"
-TSHOCK_VERSION="5.2.0"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -43,7 +40,7 @@ check_root() {
 
 # 创建必要目录
 create_directories() {
-    mkdir -p "$BIN_DIR" "$CONFIG_DIR" "$LOGS_DIR" "$PANEL_DIR" "$TERRARIA_DIR"
+    mkdir -p "$BIN_DIR" "$CONFIG_DIR" "$LOGS_DIR" "$PANEL_DIR"
     echo -e "${GREEN}目录创建完成${NC}"
 }
 
@@ -1033,692 +1030,77 @@ show_status() {
     echo -e "${BLUE}访问地址:${NC} http://$(hostname -I | awk '{print $1}'):$PORT"
 }
 
-# 检查泰拉瑞亚服务器
-check_terraria_server() {
-    echo -e "${BLUE}检查泰拉瑞亚服务器...${NC}"
-    
-    # 检查目录是否存在
-    if [ ! -d "$TERRARIA_DIR" ]; then
-        mkdir -p "$TERRARIA_DIR"
-        echo -e "${YELLOW}泰拉瑞亚服务器目录不存在，已创建${NC}"
-    fi
-    
-    # 检查TShock是否已安装
-    if [ -f "$TERRARIA_DIR/TerrariaServer.exe" ] && [ -f "$TERRARIA_DIR/TShock.dll" ]; then
-        echo -e "${GREEN}已检测到泰拉瑞亚服务器 (TShock)${NC}"
-        return 0
-    else
-        echo -e "${YELLOW}未检测到泰拉瑞亚服务器，是否安装？[Y/n]${NC}"
-        read -r install_terraria
-        
-        if [[ "$install_terraria" =~ ^[Yy]$ ]] || [ -z "$install_terraria" ]; then
-            install_terraria_server
-        else
-            echo -e "${YELLOW}跳过泰拉瑞亚服务器安装${NC}"
-        fi
-    fi
-}
-
-# 安装泰拉瑞亚服务器
-install_terraria_server() {
-    echo -e "${BLUE}正在安装泰拉瑞亚服务器 (TShock)...${NC}"
-    
-    # 检查mono是否安装
-    if ! command -v mono &> /dev/null; then
-        echo -e "${YELLOW}未检测到mono运行时，尝试安装...${NC}"
-        if command -v apt-get &> /dev/null; then
-            apt-get update && apt-get install -y mono-complete
-        elif command -v yum &> /dev/null; then
-            yum install -y mono-complete
-        else
-            echo -e "${RED}无法安装mono，请手动安装后重试${NC}"
-            return 1
-        fi
-    fi
-    
-    # 创建临时目录
-    TMP_DIR=$(mktemp -d)
-    
-    # 下载TShock
-    echo -e "${BLUE}下载TShock v${TSHOCK_VERSION}...${NC}"
-    TSHOCK_URL="https://github.com/Pryaxis/TShock/releases/download/v${TSHOCK_VERSION}/TShock-${TSHOCK_VERSION}-for-Terraria-${TERRARIA_VERSION}-linux-x64-Release.zip"
-    
-    if command -v wget &> /dev/null; then
-        wget --timeout=30 --tries=3 -O "$TMP_DIR/tshock.zip" "$TSHOCK_URL" || {
-            echo -e "${RED}下载TShock失败${NC}"
-            return 1
-        }
-    else
-        curl -m 30 -L -o "$TMP_DIR/tshock.zip" "$TSHOCK_URL" || {
-            echo -e "${RED}下载TShock失败${NC}"
-            return 1
-        }
-    fi
-    
-    # 解压TShock
-    echo -e "${BLUE}解压TShock...${NC}"
-    unzip -o "$TMP_DIR/tshock.zip" -d "$TERRARIA_DIR" || {
-        echo -e "${RED}解压TShock失败${NC}"
-        return 1
-    }
-    
-    # 设置权限
-    chmod +x "$TERRARIA_DIR/TerrariaServer.exe" || {
-        echo -e "${YELLOW}设置TerrariaServer.exe权限失败${NC}"
-    }
-    
-    # 创建世界目录
-    mkdir -p "$TERRARIA_DIR/worlds"
-    
-    # 创建启动脚本
-    cat > "$TERRARIA_DIR/start-server.sh" << 'EOF'
-#!/bin/bash
-cd "$(dirname "$0")"
-mono --server --gc=sgen -O=all TerrariaServer.exe -configpath ./config -worldpath ./worlds -logpath ./logs "$@"
-EOF
-    
-    chmod +x "$TERRARIA_DIR/start-server.sh"
-    
-    # 创建配置目录
-    mkdir -p "$TERRARIA_DIR/config"
-    mkdir -p "$TERRARIA_DIR/logs"
-    
-    # 创建基本配置文件
-    if [ ! -f "$TERRARIA_DIR/config/config.json" ]; then
-        cat > "$TERRARIA_DIR/config/config.json" << 'EOF'
-{
-  "Settings": {
-    "ServerPort": 7777,
-    "MaxSlots": 8,
-    "ServerPassword": "",
-    "Motd": "欢迎来到泰拉瑞亚服务器！",
-    "WorldFile": "",
-    "AutoCreate": true,
-    "Seed": "",
-    "Difficulty": 1,
-    "Language": "zh-Hans",
-    "AnnouncementBoxRange": 50,
-    "AutoSave": true,
-    "AutoSaveInterval": 10,
-    "RestApiEnabled": true,
-    "RestApiPort": 7878,
-    "LogPath": "./logs",
-    "EnableWhitelist": false,
-    "InvasionMultiplier": 1,
-    "DefaultMaximumSpawns": 5,
-    "DefaultSpawnRate": 600,
-    "ServerFullNoReservedRejectionMessage": "服务器已满！",
-    "WhitelistKickReason": "你不在白名单中！",
-    "ServerFullRejectionMessage": "服务器已满！",
-    "RespawnSeconds": 5,
-    "RespawnBossSeconds": 10,
-    "TileLiquidUpdateRate": 15,
-    "ForceTime": -1,
-    "DisableBuild": false,
-    "SuperAdminChatRGB": [
-      255,
-      0,
-      0
-    ],
-    "SuperAdminChatPrefix": "(管理员) ",
-    "SuperAdminChatSuffix": "",
-    "EnableGeoIP": false,
-    "EnableTokenEndpointAuthentication": false,
-    "ChatFormat": "{1}: {2}",
-    "ChatAboveHeadsFormat": "{2}",
-    "ForceXmas": false,
-    "ForceHalloween": false,
-    "AllowCutTilesAndBreakables": false,
-    "CommandSpecifier": "/",
-    "CommandSilentSpecifier": ".",
-    "KickOnDamageThreshold": false,
-    "KickOnDamageThresholdValue": 100,
-    "BanOnDamageThreshold": false,
-    "BanOnDamageThresholdValue": 100,
-    "UseServerName": false,
-    "SendDataOnJoin": false,
-    "HardcoreOnly": false,
-    "MediumcoreOnly": false,
-    "SoftcoreOnly": false,
-    "DisableLoginBeforeJoin": false,
-    "MaximumLoginAttempts": 3,
-    "ReservedSlots": 20,
-    "LogonFailedNoticeDelay": 30,
-    "DisableUUIDLogin": false,
-    "KickProxyUsers": false,
-    "StorageType": "sqlite",
-    "MySqlHost": "localhost:3306",
-    "MySqlDbName": "tshock",
-    "MySqlUsername": "",
-    "MySqlPassword": "",
-    "MediumcoreDamageMultiplier": 1.0,
-    "HardcoreDamageMultiplier": 2.0,
-    "MediumcoreRespawnDelay": 1800,
-    "StartWithFullHealthFromSpawn": true,
-    "SoftcoreRespawnDelay": 0,
-    "SpawnProtectionRadius": 10,
-    "RangeChecks": true,
-    "DisableClownBombs": false,
-    "DisableSnowBalls": false,
-    "DisableTombstones": false,
-    "DisplayIPToAdmins": false,
-    "EnableManualBanRequest": false,
-    "RegionProtectChests": false,
-    "RegionProtectGemLocks": false,
-    "DisableLoginBeforeJoin": false,
-    "DisableUUIDLogin": false,
-    "KickEmptyUUID": false,
-    "AllowRegisterAnyUsername": false,
-    "AllowLoginAnyUsername": true,
-    "MaxDamage": 1175,
-    "MaxDamageForProjectiles": 1175,
-    "ProjIgnoreShrapnel": true,
-    "KickOnDamageThresholdSeconds": 30,
-    "PreventBannedItemSpawn": false,
-    "PreventDeadModification": true,
-    "EnableChatAboveHeads": false,
-    "ForceTime": -1,
-    "DisableTombstones": true,
-    "EnableMinimumSSCVersionRequirement": true,
-    "MinimumSSCVersion": 2,
-    "AllowAllowedGroupsToSpawnBannedItems": false,
-    "IgnoreChestStacksOnLoad": false,
-    "LogPath": "./logs/",
-    "UseSqlLogs": false,
-    "RevertToTextLogsOnSqlFailures": true,
-    "PreventInvalidPlacement": true,
-    "BroadcastRGB": [
-      127,
-      255,
-      212
-    ],
-    "ApplicationRestTokens": {}
-  }
-}
-EOF
-    fi
-    
-    # 清理临时目录
-    rm -rf "$TMP_DIR"
-    
-    echo -e "${GREEN}泰拉瑞亚服务器 (TShock) 安装完成${NC}"
-    echo -e "${BLUE}服务器位置: ${TERRARIA_DIR}${NC}"
-    echo -e "${BLUE}启动命令: ${TERRARIA_DIR}/start-server.sh${NC}"
-}
-
-# 添加泰拉瑞亚服务器管理到面板
-setup_terraria_integration() {
-    echo -e "${BLUE}配置泰拉瑞亚服务器与管理面板集成...${NC}"
-    
-    # 创建泰拉瑞亚服务器管理脚本
-    cat > "$BIN_DIR/terraria_manager.js" << 'EOF'
-const { spawn, exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-
-// 配置
-const TERRARIA_DIR = process.env.TERRARIA_DIR || path.join(process.env.HOME, 'terrariaPanel/terraria');
-const CONFIG_PATH = path.join(TERRARIA_DIR, 'config/config.json');
-const WORLDS_PATH = path.join(TERRARIA_DIR, 'worlds');
-const LOGS_PATH = path.join(TERRARIA_DIR, 'logs');
-
-// 全局变量
-let terrariaProcess = null;
-let serverStatus = {
-  status: 'stopped',
-  version: 'v1.4.4.9',
-  worldName: '',
-  players: [],
-  maxPlayers: 8,
-  uptime: 0,
-  port: 7777,
-  difficulty: 'normal',
-  memoryUsage: 0,
-  cpuUsage: 0
-};
-let startTime = 0;
-let serverLogs = [];
-
-// 启动服务器
-function startServer(worldPath) {
-  if (terrariaProcess) {
-    return { success: false, message: '服务器已在运行' };
-  }
-  
-  try {
-    // 读取配置
-    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-    const port = config.Settings.ServerPort || 7777;
-    const maxPlayers = config.Settings.MaxSlots || 8;
-    
-    // 准备启动参数
-    let args = ['-port', port, '-maxplayers', maxPlayers];
-    
-    if (worldPath) {
-      args.push('-world', worldPath);
-    }
-    
-    // 启动服务器进程
-    terrariaProcess = spawn('mono', ['TerrariaServer.exe', ...args], {
-      cwd: TERRARIA_DIR,
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-    
-    // 更新状态
-    serverStatus.status = 'starting';
-    serverStatus.port = port;
-    serverStatus.maxPlayers = maxPlayers;
-    startTime = Date.now();
-    
-    // 处理输出
-    terrariaProcess.stdout.on('data', (data) => {
-      const message = data.toString().trim();
-      serverLogs.push({
-        timestamp: new Date().toISOString(),
-        level: 'info',
-        message
-      });
-      
-      // 检测世界加载完成
-      if (message.includes('World loaded:')) {
-        serverStatus.status = 'running';
-        serverStatus.worldName = message.split('World loaded:')[1].trim();
-      }
-      
-      // 检测玩家加入
-      if (message.includes('has joined')) {
-        // 解析玩家信息并添加到列表
-        const playerName = message.split(' has joined')[0].trim();
-        serverStatus.players.push({
-          id: serverStatus.players.length + 1,
-          name: playerName,
-          ip: '未知',
-          joinTime: new Date().toISOString(),
-          playTime: 0,
-          health: 100,
-          maxHealth: 100
-        });
-      }
-      
-      // 检测玩家离开
-      if (message.includes('has left')) {
-        const playerName = message.split(' has left')[0].trim();
-        serverStatus.players = serverStatus.players.filter(p => p.name !== playerName);
-      }
-    });
-    
-    terrariaProcess.stderr.on('data', (data) => {
-      serverLogs.push({
-        timestamp: new Date().toISOString(),
-        level: 'error',
-        message: data.toString().trim()
-      });
-    });
-    
-    terrariaProcess.on('close', (code) => {
-      serverLogs.push({
-        timestamp: new Date().toISOString(),
-        level: 'warning',
-        message: `服务器已关闭，退出码: ${code}`
-      });
-      
-      terrariaProcess = null;
-      serverStatus.status = 'stopped';
-      serverStatus.players = [];
-      serverStatus.uptime = 0;
-    });
-    
-    // 启动资源监控
-    startResourceMonitoring();
-    
-    return { success: true, message: '服务器启动中' };
-  } catch (error) {
-    return { success: false, message: `启动失败: ${error.message}` };
-  }
-}
-
-// 停止服务器
-function stopServer() {
-  if (!terrariaProcess) {
-    return { success: false, message: '服务器未运行' };
-  }
-  
-  try {
-    // 发送退出命令
-    terrariaProcess.stdin.write('exit\n');
-    
-    // 设置超时强制关闭
-    setTimeout(() => {
-      if (terrariaProcess) {
-        terrariaProcess.kill();
-        terrariaProcess = null;
-        serverStatus.status = 'stopped';
-        serverStatus.players = [];
-      }
-    }, 10000);
-    
-    return { success: true, message: '服务器正在关闭' };
-  } catch (error) {
-    return { success: false, message: `关闭失败: ${error.message}` };
-  }
-}
-
-// 重启服务器
-function restartServer() {
-  const result = stopServer();
-  if (!result.success) {
-    return result;
-  }
-  
-  // 等待服务器完全关闭后重启
-  setTimeout(() => {
-    startServer();
-  }, 5000);
-  
-  return { success: true, message: '服务器正在重启' };
-}
-
-// 发送服务器命令
-function sendCommand(command) {
-  if (!terrariaProcess) {
-    return { success: false, message: '服务器未运行' };
-  }
-  
-  try {
-    terrariaProcess.stdin.write(command + '\n');
-    return { 
-      success: true, 
-      message: `命令 ${command} 已发送`, 
-      timestamp: new Date().toISOString() 
-    };
-  } catch (error) {
-    return { success: false, message: `发送命令失败: ${error.message}` };
-  }
-}
-
-// 发送服务器消息
-function sendMessage(message) {
-  return sendCommand(`say ${message}`);
-}
-
-// 踢出玩家
-function kickPlayer(playerName) {
-  return sendCommand(`kick ${playerName}`);
-}
-
-// 封禁玩家
-function banPlayer(playerName) {
-  return sendCommand(`ban ${playerName}`);
-}
-
-// 获取服务器状态
-function getStatus() {
-  // 更新运行时间
-  if (serverStatus.status === 'running' && startTime > 0) {
-    serverStatus.uptime = Math.floor((Date.now() - startTime) / 1000);
-  }
-  
-  return serverStatus;
-}
-
-// 获取服务器日志
-function getLogs(lines = 100) {
-  return serverLogs.slice(-lines);
-}
-
-// 启动资源监控
-function startResourceMonitoring() {
-  // 每10秒更新一次资源使用情况
-  setInterval(() => {
-    if (!terrariaProcess) return;
-    
-    // 获取进程PID
-    const pid = terrariaProcess.pid;
-    
-    // 在Linux上使用ps命令获取CPU和内存使用情况
-    exec(`ps -p ${pid} -o %cpu,%mem`, (error, stdout) => {
-      if (error || !stdout) return;
-      
-      const lines = stdout.trim().split('\n');
-      if (lines.length < 2) return;
-      
-      const [cpu, mem] = lines[1].trim().split(/\s+/);
-      serverStatus.cpuUsage = parseFloat(cpu);
-      
-      // 计算内存使用量 (估算)
-      const totalMem = os.totalmem();
-      serverStatus.memoryUsage = Math.floor((parseFloat(mem) / 100) * totalMem);
-    });
-  }, 10000);
-}
-
-// 获取世界列表
-function getWorlds() {
-  try {
-    const worlds = [];
-    const files = fs.readdirSync(WORLDS_PATH);
-    
-    files.forEach(file => {
-      if (file.endsWith('.wld')) {
-        const filePath = path.join(WORLDS_PATH, file);
-        const stats = fs.statSync(filePath);
-        
-        worlds.push({
-          name: file.replace('.wld', ''),
-          path: filePath,
-          size: stats.size,
-          lastModified: stats.mtime.toISOString(),
-          // 其他属性需要从文件内容中解析，这里简化处理
-          difficulty: 'unknown',
-          playTime: 0,
-          creationTime: stats.birthtime.toISOString(),
-          isHardMode: false
-        });
-      }
-    });
-    
-    return worlds;
-  } catch (error) {
-    console.error('获取世界列表失败:', error);
-    return [];
-  }
-}
-
-// 创建备份
-function createBackup(note) {
-  try {
-    const backupDir = path.join(TERRARIA_DIR, 'backups');
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
-    }
-    
-    const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
-    const backupId = Date.now().toString(36);
-    const backupPath = path.join(backupDir, `world_backup_${timestamp}_${backupId}.zip`);
-    
-    // 使用zip命令创建备份
-    exec(`zip -r "${backupPath}" "${WORLDS_PATH}"`, (error) => {
-      if (error) {
-        console.error('创建备份失败:', error);
-      } else {
-        // 记录备份信息
-        const backupInfo = {
-          id: backupId,
-          createdAt: new Date().toISOString(),
-          path: backupPath,
-          note: note || ''
-        };
-        
-        const backupInfoPath = path.join(backupDir, 'backups.json');
-        let backups = [];
-        
-        if (fs.existsSync(backupInfoPath)) {
-          try {
-            backups = JSON.parse(fs.readFileSync(backupInfoPath, 'utf8'));
-          } catch (e) {
-            console.error('读取备份信息失败:', e);
-          }
-        }
-        
-        backups.push(backupInfo);
-        fs.writeFileSync(backupInfoPath, JSON.stringify(backups, null, 2));
-      }
-    });
-    
-    return {
-      success: true,
-      message: '备份创建中',
-      backupId: backupId
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: `创建备份失败: ${error.message}`
-    };
-  }
-}
-
-// 获取备份列表
-function getBackups() {
-  try {
-    const backupDir = path.join(TERRARIA_DIR, 'backups');
-    const backupInfoPath = path.join(backupDir, 'backups.json');
-    
-    if (!fs.existsSync(backupInfoPath)) {
-      return [];
-    }
-    
-    const backups = JSON.parse(fs.readFileSync(backupInfoPath, 'utf8'));
-    return backups;
-  } catch (error) {
-    console.error('获取备份列表失败:', error);
-    return [];
-  }
-}
-
-// 导出功能
-module.exports = {
-  startServer,
-  stopServer,
-  restartServer,
-  sendCommand,
-  sendMessage,
-  kickPlayer,
-  banPlayer,
-  getStatus,
-  getLogs,
-  getWorlds,
-  createBackup,
-  getBackups
-};
-EOF
-    
-    # 创建配置文件链接
-    if [ -d "$TERRARIA_DIR" ]; then
-        ln -sf "$TERRARIA_DIR/config" "$CONFIG_DIR/terraria"
-        ln -sf "$TERRARIA_DIR/worlds" "$CONFIG_DIR/terraria_worlds"
-        
-        # 设置环境变量
-        echo "export TERRARIA_DIR=\"$TERRARIA_DIR\"" >> "$BASE_DIR/.env"
-        
-        echo -e "${GREEN}泰拉瑞亚服务器与管理面板集成配置完成${NC}"
-    else
-        echo -e "${YELLOW}泰拉瑞亚服务器目录不存在，跳过集成配置${NC}"
-    fi
-}
-
-# 主菜单
+# 显示菜单
 show_menu() {
     clear
-    echo -e "${BLUE}${BOLD}泰拉瑞亚服务器管理面板 - 安装脚本 v${VERSION}${NC}"
-    echo -e "${CYAN}==================================================${NC}"
-    echo -e "  ${GREEN}1.${NC} 安装管理面板"
-    echo -e "  ${GREEN}2.${NC} 更新管理面板"
-    echo -e "  ${GREEN}3.${NC} 卸载管理面板"
-    echo -e "  ${GREEN}4.${NC} 启动管理面板"
-    echo -e "  ${GREEN}5.${NC} 停止管理面板"
-    echo -e "  ${GREEN}6.${NC} 查看面板状态"
-    echo -e "  ${GREEN}7.${NC} 修改面板端口"
-    echo -e "  ${GREEN}8.${NC} 安装/更新泰拉瑞亚服务器"
-    echo -e "  ${GREEN}9.${NC} 启动泰拉瑞亚服务器"
-    echo -e "  ${GREEN}0.${NC} 退出"
-    echo -e "${CYAN}==================================================${NC}"
-    echo -e "  当前面板端口: ${PORT}"
-    echo -e "  安装目录: ${BASE_DIR}"
-    echo -e "${CYAN}==================================================${NC}"
+    echo -e "${BOLD}${GREEN}泰拉瑞亚服务器管理面板${NC}"
+    echo -e "${BLUE}--- https://github.com/${GITHUB_REPO} ---${NC}"
+    echo -e "${BLUE}--- https://gitee.com/${GITEE_REPO} ---${NC}"
+    echo -e "${YELLOW}————————————————————————————————————————————————————————————${NC}"
+    echo -e "${BOLD}[0]:${NC} 下载并启动服务(Download and start the service)"
+    echo -e "${YELLOW}————————————————————————————————————————————————————————————${NC}"
+    echo -e "${BOLD}[1]:${NC} 启动服务(Start the service)"
+    echo -e "${BOLD}[2]:${NC} 关闭服务(Stop the service)"
+    echo -e "${BOLD}[3]:${NC} 重启服务(Restart the service)"
+    echo -e "${YELLOW}————————————————————————————————————————————————————————————${NC}"
+    echo -e "${BOLD}[4]:${NC} 修改端口(Change port)"
+    echo -e "${BOLD}[5]:${NC} 更新管理平台(Update management platform)"
+    echo -e "${BOLD}[6]:${NC} 强制更新平台(Force update platform)"
+    echo -e "${BOLD}[7]:${NC} 更新启动脚本(Update startup script)"
+    echo -e "${YELLOW}————————————————————————————————————————————————————————————${NC}"
+    echo -e "${BOLD}[8]:${NC} 设置虚拟内存(Setup swap)"
+    echo -e "${BOLD}[9]:${NC} 查看面板状态(Show status)"
+    echo -e "${BOLD}[10]:${NC} 退出脚本(Exit script)"
+    echo -e "${YELLOW}————————————————————————————————————————————————————————————${NC}"
     
-    read -p "请输入选项 [0-9]: " choice
+    read -p "请输入选择(Please enter your selection) [0-10]: " CHOICE
     
-    case $choice in
-        1) install_panel ;;
-        2) update_panel ;;
-        3) uninstall_panel ;;
-        4) start_panel ;;
-        5) stop_panel ;;
-        6) check_status ;;
-        7) change_port; show_menu ;;
-        8) check_terraria_server; show_menu ;;
-        9) start_terraria_server; show_menu ;;
-        0) exit 0 ;;
-        *) echo -e "${RED}无效的选项${NC}"; sleep 2; show_menu ;;
+    case $CHOICE in
+        0)
+            check_dependencies
+            create_directories
+            download_panel
+            create_service
+            start_panel
+            ;;
+        1)
+            start_panel
+            ;;
+        2)
+            stop_panel
+            ;;
+        3)
+            restart_panel
+            ;;
+        4)
+            change_port
+            ;;
+        5)
+            update_panel
+            ;;
+        6)
+            force_update_panel
+            ;;
+        7)
+            update_script
+            ;;
+        8)
+            setup_swap
+            ;;
+        9)
+            show_status
+            ;;
+        10)
+            echo -e "${GREEN}感谢使用，再见！${NC}"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}无效的选择，请重新输入${NC}"
+            ;;
     esac
-}
-
-# 启动泰拉瑞亚服务器
-start_terraria_server() {
-    if [ ! -d "$TERRARIA_DIR" ] || [ ! -f "$TERRARIA_DIR/TerrariaServer.exe" ]; then
-        echo -e "${RED}泰拉瑞亚服务器未安装${NC}"
-        read -p "是否安装泰拉瑞亚服务器？[Y/n] " install_choice
-        if [[ "$install_choice" =~ ^[Yy]$ ]] || [ -z "$install_choice" ]; then
-            check_terraria_server
-        else
-            return
-        fi
-    fi
     
-    echo -e "${BLUE}启动泰拉瑞亚服务器...${NC}"
-    
-    # 检查是否有可用的世界
-    if [ -d "$TERRARIA_DIR/worlds" ]; then
-        world_count=$(find "$TERRARIA_DIR/worlds" -name "*.wld" | wc -l)
-        if [ "$world_count" -gt 0 ]; then
-            echo -e "${GREEN}检测到 $world_count 个世界${NC}"
-            echo -e "${YELLOW}可用的世界:${NC}"
-            
-            # 列出可用世界
-            find "$TERRARIA_DIR/worlds" -name "*.wld" | nl
-            
-            read -p "请选择世界编号 (留空则创建新世界): " world_choice
-            
-            if [ -n "$world_choice" ]; then
-                selected_world=$(find "$TERRARIA_DIR/worlds" -name "*.wld" | sed -n "${world_choice}p")
-                if [ -n "$selected_world" ]; then
-                    echo -e "${GREEN}已选择世界: ${selected_world}${NC}"
-                    cd "$TERRARIA_DIR" && ./start-server.sh -world "$selected_world" &
-                    echo -e "${GREEN}泰拉瑞亚服务器已启动${NC}"
-                    return
-                fi
-            fi
-        fi
-    fi
-    
-    # 创建新世界或使用默认启动
-    echo -e "${YELLOW}未选择世界或无可用世界，将创建新世界${NC}"
-    cd "$TERRARIA_DIR" && ./start-server.sh &
-    echo -e "${GREEN}泰拉瑞亚服务器已启动${NC}"
-}
-
-# 安装面板
-install_panel() {
-    check_root
-    check_dependencies
-    create_directories
-    download_panel
-    check_terraria_server
-    setup_terraria_integration
-    setup_service
-    setup_firewall
-    start_panel
+    # 按任意键返回菜单
+    read -n 1 -s -r -p "按任意键返回菜单..."
     show_menu
 }
 

@@ -1,185 +1,148 @@
 # 泰拉瑞亚服务器管理面板
 
-一个简单的泰拉瑞亚服务器管理面板，提供基本的服务器管理功能。
+一个基于Web的泰拉瑞亚(Terraria)服务器管理面板，支持Linux系统管理和泰拉瑞亚服务器管理，类似于饥荒管理平台(DST Management Platform)。
 
-## 最新更新
+## 功能特性
 
-- **增强网络适应性**：添加下载超时参数，确保在网络不稳定环境下能快速切换镜像源
-- **优化前端检测**：改进前端文件检测逻辑，添加多路径查找机制
-- **修复端口占用问题**：增加检测和清理占用端口的功能
-- **添加备用页面**：即使没有完整前端文件，也能显示基础页面
-- **简化构建过程**：不再依赖复杂的前端构建
+### 系统管理功能
+- 系统信息监控：CPU、内存、磁盘、网络使用情况
+- 进程管理：查看、结束进程
+- 服务管理：启动、停止、重启系统服务
+- 文件管理：浏览、编辑、上传、下载文件
+- 命令执行：远程执行Linux命令
 
-## 主要功能
+### 泰拉瑞亚服务器管理功能
+- 服务器控制：启动、停止、重启泰拉瑞亚服务器
+- 世界管理：创建、选择、删除世界
+- 玩家管理：查看在线玩家、踢出、封禁玩家
+- 服务器配置：修改服务器设置
+- 备份管理：创建、恢复、删除世界备份
+- 插件管理：启用/禁用插件、配置插件
+- 服务器日志：实时查看服务器日志
+- 服务器控制台：发送命令和消息
 
-- 服务器状态监控
-- 系统资源查看
-- 进程管理
-- 文件管理
-- 服务控制
+## 系统要求
+
+- Linux操作系统 (推荐Ubuntu 20.04+, CentOS 7+)
+- Node.js 16+ (自动安装)
+- Mono运行时 (用于运行泰拉瑞亚服务器，自动安装)
+- 最小配置: 1核CPU, 1GB内存, 5GB磁盘空间
 
 ## 快速安装
 
-使用以下命令一键安装：
-
+### 一键安装脚本
 ```bash
-# 使用curl一键安装（自动从多个源尝试下载）
-bash -c "$(curl -fsSL https://gitee.com/cd-writer/terraria-panel/raw/main/terraria_panel.sh || curl -fsSL https://raw.githubusercontent.com/ShourGG/terraria-panel/main/terraria_panel.sh)"
-
-# 使用wget一键安装
-bash -c "$(wget -O- https://gitee.com/cd-writer/terraria-panel/raw/main/terraria_panel.sh || wget -O- https://raw.githubusercontent.com/ShourGG/terraria-panel/main/terraria_panel.sh)"
+bash <(curl -s https://raw.githubusercontent.com/ShourGG/terraria-panel/main/terraria_panel.sh)
 ```
 
-## 使用说明
-
-安装完成后，可以通过以下选项管理泰拉瑞亚服务器：
-
-- `[0]`: 下载并启动服务
-- `[1]`: 启动服务
-- `[2]`: 关闭服务
-- `[3]`: 重启服务
-- `[4]`: 修改端口
-- `[5]`: 更新管理平台
-- `[6]`: 强制更新平台
-- `[7]`: 更新启动脚本
-- `[8]`: 设置虚拟内存
-- `[9]`: 查看面板状态
-- `[10]`: 退出脚本
-
-## 下载源
-
-本项目支持从多个源下载：
-
-- GitHub: https://github.com/ShourGG/terraria-panel
-- Gitee: https://gitee.com/cd-writer/terraria-panel
-
-安装脚本会自动尝试从GitHub下载，如果失败则从Gitee下载。
-
-## 系统要求
-
-- Linux系统
-- Node.js 12+
-- 支持的Linux发行版: Ubuntu, Debian, CentOS, RHEL
-
-## 常见问题排查
-
-如果无法访问面板，请检查以下几点：
-
-1. 确保防火墙允许访问面板端口
-2. 如果使用云服务器，需要在控制台开放相应端口
-3. 尝试使用HTTP而非HTTPS访问 (http://IP:端口)
-4. 在访问链接中明确指定协议，例如 'http://'
-5. 检查服务器是否有安全组或网络ACL限制
-6. 尝试从服务器本地使用 curl http://localhost:端口 测试
-
-## 许可证
-
-MIT License
-
-## 功能特点
-
-- 系统监控：CPU、内存、磁盘使用率实时监控
-- 进程管理：查看和管理系统进程
-- 服务管理：控制系统服务的启动、停止和重启
-- 文件管理：浏览、编辑、创建和删除文件
-- 命令执行：在Web界面执行Linux命令
-- 一键安装：提供简单的安装脚本，一键部署
-
-## 安装方法
-
-### 使用一键安装脚本（推荐）
+或者
 
 ```bash
-# 下载安装脚本
-wget https://raw.githubusercontent.com/yourusername/terraria-panel/main/terraria_panel.sh
+bash <(wget -qO- https://raw.githubusercontent.com/ShourGG/terraria-panel/main/terraria_panel.sh)
+```
 
-# 设置执行权限
+### 手动安装
+1. 下载安装脚本
+```bash
+wget https://raw.githubusercontent.com/ShourGG/terraria-panel/main/terraria_panel.sh
+```
+
+2. 添加执行权限
+```bash
 chmod +x terraria_panel.sh
+```
 
-# 运行脚本
+3. 运行安装脚本
+```bash
 ./terraria_panel.sh
 ```
 
-按照脚本提示选择选项0，即可完成下载和安装。
-
-### 手动安装
-
-如果您想手动安装，可以按照以下步骤操作：
-
-1. 克隆仓库：
-   ```bash
-   git clone https://github.com/yourusername/terraria-panel.git
-   cd terraria-panel
-   ```
-
-2. 安装依赖并构建：
-   ```bash
-   npm install
-   npm run build
-   ```
-
-3. 启动服务：
-   ```bash
-   npm start
-   ```
-
 ## 使用方法
 
-1. 安装完成后，通过浏览器访问 `http://服务器IP地址:80`
-2. 使用系统监控、进程管理、服务管理、文件管理等功能
-
-## 系统要求
-
-- Linux系统（推荐Ubuntu 20.04或更高版本）
-- Node.js 14+（如使用一键安装脚本则无需手动安装）
-- 1GB以上内存
-- 公网IP（如需远程访问）
-
-## 开发说明
-
-### 项目结构
-
+### 管理面板访问
+安装完成后，可以通过以下地址访问管理面板：
 ```
-terraria-panel/
-├── dist/             # 前端构建输出
-├── koi-ui-master/    # 前端源码
-├── server.js         # 后端服务器
-├── package.json      # 项目配置
-├── terraria_panel.sh # 安装脚本
-└── README.md         # 项目说明
+http://服务器IP:端口
 ```
+默认端口为80，可以在安装时或安装后修改。
 
-### 构建前端
+### 默认账号
+- 用户名：admin
+- 密码：admin
 
+首次登录后请立即修改默认密码。
+
+### 管理泰拉瑞亚服务器
+1. 在管理面板中，点击"泰拉瑞亚管理"菜单
+2. 在服务器控制面板中，可以启动、停止、重启服务器
+3. 可以创建新世界或选择已有世界
+4. 可以管理玩家、配置服务器、查看日志等
+
+### 管理Linux系统
+1. 在管理面板中，点击"系统管理"菜单
+2. 可以查看系统信息、管理进程和服务
+3. 可以浏览和管理文件系统
+4. 可以执行Linux命令
+
+## 常见问题
+
+### 无法访问管理面板
+- 检查服务器防火墙是否开放了面板端口
+- 检查服务是否正常运行：`systemctl status terraria-panel`
+- 查看日志文件：`cat ~/terrariaPanel/logs/panel.log`
+
+### 泰拉瑞亚服务器无法启动
+- 检查Mono是否正确安装：`mono --version`
+- 检查TShock文件是否完整
+- 查看服务器日志：`cat ~/terrariaPanel/terraria/logs/server.log`
+
+### 如何更新管理面板
+运行安装脚本，选择"更新管理面板"选项：
 ```bash
-cd koi-ui-master
-pnpm install
-pnpm build
+./terraria_panel.sh
 ```
 
-### 打包为可执行文件
+## 自定义配置
 
-```bash
-npm run pkg
-```
+### 修改面板端口
+1. 运行安装脚本：`./terraria_panel.sh`
+2. 选择"修改面板端口"选项
+3. 输入新端口号
+4. 重启面板服务
 
-这将在bin目录下生成Linux可执行文件。
+### 修改泰拉瑞亚服务器配置
+1. 在管理面板中，进入"泰拉瑞亚管理" > "服务器配置"
+2. 修改配置参数
+3. 保存并重启服务器
 
-## 已修复的问题
+## 目录结构
+- `~/terrariaPanel/bin`: 面板程序文件
+- `~/terrariaPanel/config`: 配置文件
+- `~/terrariaPanel/logs`: 日志文件
+- `~/terrariaPanel/terraria`: 泰拉瑞亚服务器文件
+  - `~/terrariaPanel/terraria/worlds`: 世界文件
+  - `~/terrariaPanel/terraria/config`: 服务器配置
+  - `~/terrariaPanel/terraria/logs`: 服务器日志
 
-- **网络连接问题**：修复了下载超时导致安装失败的问题
-- **前端文件问题**：解决了"Error: ENOENT: no such file or directory, stat '/root/terrariaPanel/bin/dist/index.html'"错误
-- **端口占用问题**：修复了"EADDRINUSE: address already in use :::端口"错误
-- **构建问题**：简化了前端依赖，不再需要复杂的构建流程
+## 卸载
+1. 运行安装脚本：`./terraria_panel.sh`
+2. 选择"卸载管理面板"选项
+3. 确认卸载
 
-## 注意事项
+## 开发信息
 
-- 面板默认监听80端口，可通过环境变量PORT修改
-- 为安全起见，建议配置防火墙只允许特定IP访问
-- 某些功能需要root权限才能正常使用
+### 技术栈
+- 前端：Vue.js + Element Plus
+- 后端：Node.js + Express
+- 泰拉瑞亚服务器：TShock (基于Mono)
+
+### 贡献
+欢迎提交问题和功能请求，也欢迎贡献代码。
+
+### 许可证
+本项目采用 MIT 许可证。
 
 ## 致谢
-
-本项目前端基于[koi-ui](https://gitee.com/BigCatHome/koi-ui)开发，特此感谢！
-
-安装脚本参考了[DMP](https://github.com/miracleEverywhere/dst-management-platform-api)项目的实现方式，感谢开源社区的贡献！
+- 感谢 [DST Management Platform](https://github.com/miracleEverywhere/dst-management-platform-api) 项目的灵感
+- 感谢 [TShock](https://github.com/Pryaxis/TShock) 项目提供的泰拉瑞亚服务器框架
+- 感谢 [KOI-UI](https://github.com/kuailemao/Koi-UI) 提供的前端框架

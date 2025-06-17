@@ -65,6 +65,100 @@ export const linuxRouter: RouteRecordRaw = {
   ]
 };
 
+// 泰拉瑞亚管理路由
+export const terrariaRouter = {
+  path: "/terraria",
+  component: () => import("@/layouts/index.vue"),
+  redirect: "/terraria/index",
+  meta: {
+    icon: "Monitor",
+    title: "泰拉瑞亚管理",
+    rank: 2
+  },
+  children: [
+    {
+      path: "/terraria/index",
+      name: "TerrariaIndex",
+      component: () => import("@/views/terraria/index.vue"),
+      meta: {
+        icon: "HomeFilled",
+        title: "服务器概览",
+        showLink: true
+      }
+    },
+    {
+      path: "/terraria/worlds",
+      name: "TerrariaWorlds",
+      component: () => import("@/views/terraria/worlds.vue"),
+      meta: {
+        icon: "Planet",
+        title: "世界管理",
+        showLink: true
+      }
+    },
+    {
+      path: "/terraria/players",
+      name: "TerrariaPlayers",
+      component: () => import("@/views/terraria/players.vue"),
+      meta: {
+        icon: "User",
+        title: "玩家管理",
+        showLink: true
+      }
+    },
+    {
+      path: "/terraria/config",
+      name: "TerrariaConfig",
+      component: () => import("@/views/terraria/config.vue"),
+      meta: {
+        icon: "Setting",
+        title: "服务器配置",
+        showLink: true
+      }
+    },
+    {
+      path: "/terraria/backups",
+      name: "TerrariaBackups",
+      component: () => import("@/views/terraria/backups.vue"),
+      meta: {
+        icon: "Files",
+        title: "备份管理",
+        showLink: true
+      }
+    },
+    {
+      path: "/terraria/plugins",
+      name: "TerrariaPlugins",
+      component: () => import("@/views/terraria/plugins.vue"),
+      meta: {
+        icon: "Connection",
+        title: "插件管理",
+        showLink: true
+      }
+    },
+    {
+      path: "/terraria/logs",
+      name: "TerrariaLogs",
+      component: () => import("@/views/terraria/logs.vue"),
+      meta: {
+        icon: "List",
+        title: "服务器日志",
+        showLink: true
+      }
+    },
+    {
+      path: "/terraria/console",
+      name: "TerrariaConsole",
+      component: () => import("@/views/terraria/console.vue"),
+      meta: {
+        icon: "Terminal",
+        title: "服务器控制台",
+        showLink: true
+      }
+    }
+  ]
+};
+
 /**
  * 静态路由
  */
@@ -84,5 +178,6 @@ export const staticRouter: RouteRecordRaw[] = [
     }
   },
   // Linux管理路由
-  linuxRouter
+  linuxRouter,
+  terrariaRouter
 ]; 
