@@ -6,7 +6,7 @@
 # 全局变量
 VERSION="1.0.0"
 GITHUB_REPO="ShourGG/terraria-panel"
-GITEE_REPO="ShourGG/terraria-panel"
+GITEE_REPO="cd-writer/terraria-panel"
 GITHUB_URL="https://github.com/${GITHUB_REPO}/raw/main/terraria_panel_files.zip"
 GITEE_URL="https://gitee.com/${GITEE_REPO}/raw/main/terraria_panel_files.zip"
 DOWNLOAD_URL="$GITHUB_URL"

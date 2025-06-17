@@ -19,7 +19,7 @@
 wget https://raw.githubusercontent.com/ShourGG/terraria-panel/main/terraria_panel.sh && chmod +x terraria_panel.sh && ./terraria_panel.sh
 
 # 如果GitHub访问困难，可以从Gitee下载
-wget https://gitee.com/ShourGG/terraria-panel/raw/main/terraria_panel.sh && chmod +x terraria_panel.sh && ./terraria_panel.sh
+wget https://gitee.com/cd-writer/terraria-panel/raw/main/terraria_panel.sh && chmod +x terraria_panel.sh && ./terraria_panel.sh
 ```
 
 ## 使用说明
@@ -43,7 +43,7 @@ wget https://gitee.com/ShourGG/terraria-panel/raw/main/terraria_panel.sh && chmo
 本项目支持从多个源下载：
 
 - GitHub: https://github.com/ShourGG/terraria-panel
-- Gitee: https://gitee.com/ShourGG/terraria-panel
+- Gitee: https://gitee.com/cd-writer/terraria-panel
 
 安装脚本会自动尝试从GitHub下载，如果失败则从Gitee下载。
 
