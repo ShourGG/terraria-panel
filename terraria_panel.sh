@@ -83,8 +83,25 @@ change_port() {
         # 如果服务已经创建，需要更新服务配置
         if [ -f "/etc/systemd/system/${SERVICE_NAME}.service" ] && [ "$(id -u)" = "0" ]; then
             sed -i "s/-l [0-9]\+/-l $PORT/g" "/etc/systemd/system/${SERVICE_NAME}.service"
+            sed -i "s/PORT=[0-9]*/PORT=$PORT/g" "/etc/systemd/system/${SERVICE_NAME}.service"
             systemctl daemon-reload
             echo -e "${GREEN}服务配置已更新${NC}"
+            
+            # 更新防火墙规则
+            if command -v firewall-cmd &> /dev/null; then
+                echo -e "${BLUE}更新防火墙规则...${NC}"
+                firewall-cmd --permanent --add-port=$PORT/tcp
+                firewall-cmd --reload
+                echo -e "${GREEN}已更新防火墙端口 $PORT${NC}"
+            elif command -v ufw &> /dev/null && ufw status | grep -q "active"; then
+                echo -e "${BLUE}更新UFW防火墙规则...${NC}"
+                ufw allow $PORT/tcp
+                echo -e "${GREEN}已更新防火墙端口 $PORT${NC}"
+            elif command -v iptables &> /dev/null; then
+                echo -e "${BLUE}更新iptables防火墙规则...${NC}"
+                iptables -I INPUT -p tcp --dport $PORT -j ACCEPT
+                echo -e "${GREEN}已更新防火墙端口 $PORT${NC}"
+            fi
         fi
         
         # 如果使用的是进程启动方式，则需要重启服务
@@ -295,10 +312,21 @@ const server = http.createServer((req, res) => {
   }
 });
 
-// 启动服务器
-server.listen(PORT, () => {
+// 启动服务器 - 绑定到所有网络接口
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`泰拉瑞亚管理面板服务器启动在端口 ${PORT}`);
-  console.log(`访问地址: http://localhost:${PORT}`);
+  
+  // 获取所有网络接口
+  const interfaces = os.networkInterfaces();
+  console.log('可通过以下地址访问:');
+  Object.keys(interfaces).forEach((iface) => {
+    interfaces[iface].forEach((details) => {
+      if (details.family === 'IPv4' && !details.internal) {
+        console.log(`  http://${details.address}:${PORT}`);
+      }
+    });
+  });
+  console.log(`  http://localhost:${PORT} (本地访问)`);
 });
 
 // 处理进程终止信号
@@ -345,6 +373,30 @@ EOF
     
     systemctl daemon-reload
     systemctl enable "$SERVICE_NAME"
+    
+    # 添加防火墙规则（如果有防火墙）
+    if command -v firewall-cmd &> /dev/null; then
+        echo -e "${BLUE}配置防火墙...${NC}"
+        firewall-cmd --permanent --add-port=$PORT/tcp
+        firewall-cmd --reload
+        echo -e "${GREEN}已开放防火墙端口 $PORT${NC}"
+    elif command -v ufw &> /dev/null && ufw status | grep -q "active"; then
+        echo -e "${BLUE}配置UFW防火墙...${NC}"
+        ufw allow $PORT/tcp
+        echo -e "${GREEN}已开放防火墙端口 $PORT${NC}"
+    elif command -v iptables &> /dev/null; then
+        echo -e "${BLUE}配置iptables防火墙...${NC}"
+        iptables -I INPUT -p tcp --dport $PORT -j ACCEPT
+        if [ -f /etc/redhat-release ]; then
+            # CentOS/RHEL
+            service iptables save
+        elif [ -f /etc/debian_version ]; then
+            # Debian/Ubuntu
+            iptables-save > /etc/iptables/rules.v4
+        fi
+        echo -e "${GREEN}已开放防火墙端口 $PORT${NC}"
+    fi
+    
     echo -e "${GREEN}服务创建完成${NC}"
 }
 
@@ -359,6 +411,7 @@ start_panel() {
             echo -e "${GREEN}面板启动成功${NC}"
         else
             echo -e "${RED}面板启动失败，请查看日志${NC}"
+            echo -e "${YELLOW}查看日志: ${BOLD}journalctl -u $SERVICE_NAME -n 50 --no-pager${NC}"
         fi
     else
         # 确保环境变量被设置
@@ -370,11 +423,30 @@ start_panel() {
             echo $! > "$BASE_DIR/panel.pid"
             echo -e "${GREEN}面板启动成功，PID: $!${NC}"
         else
-            echo -e "${RED}面板启动失败，请查看日志${NC}"
+            echo -e "${RED}面板启动失败，请查看日志: $LOGS_DIR/panel.log${NC}"
         fi
     fi
     
-    echo -e "${BLUE}面板访问地址: ${BOLD}http://$(hostname -I | awk '{print $1}'):${PORT}${NC}"
+    # 显示所有可能的访问地址
+    echo -e "${BLUE}面板访问地址:${NC}"
+    if command -v ip &> /dev/null; then
+        ip -4 addr | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | while read -r ip; do
+            if [[ $ip != "127.0.0.1" ]]; then
+                echo -e "  ${BOLD}http://$ip:${PORT}${NC} (局域网/内网访问)"
+            fi
+        done
+    else
+        hostname -I | tr ' ' '\n' | while read -r ip; do
+            if [[ -n $ip ]]; then
+                echo -e "  ${BOLD}http://$ip:${PORT}${NC} (局域网/内网访问)"
+            fi
+        done
+    fi
+    echo -e "  ${BOLD}http://localhost:${PORT}${NC} (本地访问)"
+    
+    # 提示检查防火墙
+    echo -e "${YELLOW}提示: 如果无法访问面板，请检查防火墙是否开放了 ${PORT} 端口${NC}"
+    echo -e "${YELLOW}      您可能需要在云服务提供商的控制台中配置安全组规则${NC}"
 }
 
 # 停止面板
