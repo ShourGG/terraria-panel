@@ -400,53 +400,103 @@ EOF
     echo -e "${GREEN}服务创建完成${NC}"
 }
 
+# 检查网络连接
+check_network() {
+    echo -e "${BLUE}正在检查网络连接...${NC}"
+    
+    # 检查是否能访问外网
+    if ping -c 1 -W 3 8.8.8.8 &> /dev/null; then
+        echo -e "${GREEN}网络连接正常${NC}"
+    else
+        echo -e "${YELLOW}警告: 无法连接到外网，可能影响面板的某些功能${NC}"
+    fi
+    
+    # 获取当前系统所有IP地址
+    echo -e "${BLUE}本机IP地址:${NC}"
+    ip_addresses=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1')
+    if [ -z "$ip_addresses" ]; then
+        echo -e "${YELLOW}未找到非本地IP地址${NC}"
+    else
+        echo "$ip_addresses" | while read -r ip; do
+            echo -e "  - ${GREEN}$ip:$PORT${NC} (内部/局域网访问)"
+        done
+    fi
+    
+    # 尝试获取公网IP
+    public_ip=$(curl -s --max-time 5 https://api.ipify.org || curl -s --max-time 5 https://ifconfig.me || curl -s --max-time 5 http://ipecho.net/plain)
+    if [ -n "$public_ip" ]; then
+        echo -e "${BLUE}公网IP地址:${NC}"
+        echo -e "  - ${GREEN}$public_ip:$PORT${NC} (可能需要配置端口转发)"
+    else
+        echo -e "${YELLOW}无法获取公网IP地址${NC}"
+    fi
+    
+    # 检查端口是否已开放
+    echo -e "${BLUE}检查端口 $PORT 状态:${NC}"
+    if command -v netstat &> /dev/null; then
+        if netstat -tuln | grep -q ":$PORT "; then
+            echo -e "${GREEN}端口 $PORT 已开放并有服务在监听${NC}"
+        else
+            echo -e "${RED}端口 $PORT 未开放或没有服务在监听${NC}"
+        fi
+    elif command -v ss &> /dev/null; then
+        if ss -tuln | grep -q ":$PORT "; then
+            echo -e "${GREEN}端口 $PORT 已开放并有服务在监听${NC}"
+        else
+            echo -e "${RED}端口 $PORT 未开放或没有服务在监听${NC}"
+        fi
+    else
+        echo -e "${YELLOW}无法检查端口状态，找不到netstat或ss命令${NC}"
+    fi
+}
+
 # 启动面板
 start_panel() {
     echo -e "${BLUE}启动泰拉瑞亚管理面板...${NC}"
     
-    if [ "$(id -u)" = "0" ]; then
-        systemctl start "$SERVICE_NAME"
-        sleep 2
-        if systemctl is-active --quiet "$SERVICE_NAME"; then
-            echo -e "${GREEN}面板启动成功${NC}"
-        else
-            echo -e "${RED}面板启动失败，请查看日志${NC}"
-            echo -e "${YELLOW}查看日志: ${BOLD}journalctl -u $SERVICE_NAME -n 50 --no-pager${NC}"
-        fi
-    else
-        # 确保环境变量被设置
-        export PORT=$PORT
+    # 检查面板程序是否存在
+    if [ ! -f "$BIN_DIR/$BIN_NAME" ]; then
+        echo -e "${RED}面板程序不存在，请先下载面板${NC}"
+        return 1
+    fi
+    
+    # 如果已有进程在运行，先停止
+    if [ -f "$BASE_DIR/panel.pid" ]; then
+        stop_panel
+    fi
+    
+    # 启动面板
+    cd "$BIN_DIR" || { echo -e "${RED}无法进入目录 $BIN_DIR${NC}"; return 1; }
+    nohup node "$BIN_NAME" > "$LOGS_DIR/panel.log" 2>&1 &
+    echo $! > "$BASE_DIR/panel.pid"
+    
+    # 等待服务启动
+    echo -e "${BLUE}等待服务启动...${NC}"
+    sleep 3
+    
+    # 检查服务是否成功启动
+    if [ -f "$BASE_DIR/panel.pid" ] && ps -p $(cat "$BASE_DIR/panel.pid") &> /dev/null; then
+        echo -e "${GREEN}面板启动成功${NC}"
         
-        nohup "$BIN_DIR/$BIN_NAME" > "$LOGS_DIR/panel.log" 2>&1 &
-        sleep 2
-        if ps -p $! > /dev/null; then
-            echo $! > "$BASE_DIR/panel.pid"
-            echo -e "${GREEN}面板启动成功，PID: $!${NC}"
-        else
-            echo -e "${RED}面板启动失败，请查看日志: $LOGS_DIR/panel.log${NC}"
+        # 检查网络连接和提供访问地址
+        check_network
+        
+        # 提供可能的故障排除信息
+        echo -e "${YELLOW}提示:${NC} 如果无法访问面板，请检查以下几点:"
+        echo -e "  1. ${YELLOW}确保防火墙允许访问端口 $PORT${NC}"
+        echo -e "  2. ${YELLOW}如果使用云服务器，需要在控制台开放端口 $PORT${NC}"
+        echo -e "  3. ${YELLOW}尝试使用HTTP而非HTTPS访问 (http://IP:$PORT)${NC}"
+        echo -e "  4. ${YELLOW}在访问链接中明确指定协议，例如 'http://'${NC}"
+        echo -e "  5. ${YELLOW}检查服务器是否有安全组或网络ACL限制${NC}"
+        echo -e "  6. ${YELLOW}尝试从服务器本地使用 curl http://localhost:$PORT 测试${NC}"
+    else
+        echo -e "${RED}面板启动失败，请查看日志文件: $LOGS_DIR/panel.log${NC}"
+        # 显示日志最后几行
+        if [ -f "$LOGS_DIR/panel.log" ]; then
+            echo -e "${YELLOW}日志最后几行:${NC}"
+            tail -n 10 "$LOGS_DIR/panel.log"
         fi
     fi
-    
-    # 显示所有可能的访问地址
-    echo -e "${BLUE}面板访问地址:${NC}"
-    if command -v ip &> /dev/null; then
-        ip -4 addr | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | while read -r ip; do
-            if [[ $ip != "127.0.0.1" ]]; then
-                echo -e "  ${BOLD}http://$ip:${PORT}${NC} (局域网/内网访问)"
-            fi
-        done
-    else
-        hostname -I | tr ' ' '\n' | while read -r ip; do
-            if [[ -n $ip ]]; then
-                echo -e "  ${BOLD}http://$ip:${PORT}${NC} (局域网/内网访问)"
-            fi
-        done
-    fi
-    echo -e "  ${BOLD}http://localhost:${PORT}${NC} (本地访问)"
-    
-    # 提示检查防火墙
-    echo -e "${YELLOW}提示: 如果无法访问面板，请检查防火墙是否开放了 ${PORT} 端口${NC}"
-    echo -e "${YELLOW}      您可能需要在云服务提供商的控制台中配置安全组规则${NC}"
 }
 
 # 停止面板

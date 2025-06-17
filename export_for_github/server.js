@@ -450,8 +450,22 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-// 启动服务器
-app.listen(port, () => {
+// 启动服务器 - 绑定到所有网络接口
+app.listen(port, '0.0.0.0', () => {
   console.log(`泰拉瑞亚管理面板服务器启动在端口 ${port}`);
-  console.log(`访问地址: http://localhost:${port}`);
+  
+  // 获取所有网络接口
+  const interfaces = os.networkInterfaces();
+  
+  console.log('面板可通过以下地址访问:');
+  // 显示所有网络接口的IP地址
+  Object.keys(interfaces).forEach((iface) => {
+    interfaces[iface].forEach((details) => {
+      if (details.family === 'IPv4' && !details.internal) {
+        console.log(`http://${details.address}:${port}`);
+      }
+    });
+  });
+  
+  console.log(`http://localhost:${port} (本地访问)`);
 }); 
