@@ -246,13 +246,13 @@ create_basic_html() {
     </div>
     <div class="card">
       <div class="card-title">快速链接</div>
-      <a href="/terraria" class="btn">管理面板</a>
+      <a href="/" class="btn">管理面板</a>
       <a href="/system" class="btn">系统监控</a>
     </div>
     <div class="card">
       <div class="card-title">项目信息</div>
-      <p>GitHub: <a href="https://github.com/ShourGG/terraria-panel">https://github.com/ShourGG/terraria-panel</a></p>
-      <p>Gitee: <a href="https://gitee.com/cd-writer/terraria-panel">https://gitee.com/cd-writer/terraria-panel</a></p>
+      <p>GitHub: <a href="https://github.com/ShourGG/terraria-panel/tree/koi-ui">https://github.com/ShourGG/terraria-panel/tree/koi-ui</a></p>
+      <p>Gitee: <a href="https://gitee.com/cd-writer/terraria-panel/tree/koi-ui">https://gitee.com/cd-writer/terraria-panel/tree/koi-ui</a></p>
     </div>
   </div>
 </body>
