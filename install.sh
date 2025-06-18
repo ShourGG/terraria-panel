@@ -6,6 +6,8 @@
 # 全局变量
 VERSION="1.0.0"
 GITHUB_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/main"
+GITEE_URL="https://gitee.com/cd-writer/terraria-panel/raw/main"
+REPO_URL=""
 BASE_DIR="$HOME/terrariaPanel"
 CONFIG_DIR="$BASE_DIR/config"
 LOGS_DIR="$BASE_DIR/logs"
@@ -20,6 +22,26 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;36m'
 NC='\033[0m' # 恢复默认颜色
+
+# 选择下载源
+select_source() {
+    echo -e "${BLUE}请选择下载源:${NC}"
+    echo -e "1) GitHub (国际)"
+    echo -e "2) Gitee (中国大陆)"
+    
+    read -p "请输入选项 [1-2，默认1]: " source_option
+    
+    case $source_option in
+        2)
+            REPO_URL=$GITEE_URL
+            echo -e "${GREEN}已选择 Gitee 源${NC}"
+            ;;
+        *)
+            REPO_URL=$GITHUB_URL
+            echo -e "${GREEN}已选择 GitHub 源${NC}"
+            ;;
+    esac
+}
 
 # 创建必要目录
 create_directories() {
@@ -49,18 +71,38 @@ download_files() {
     
     # 下载server.js
     echo -e "${BLUE}下载server.js...${NC}"
-    curl -s -L "$GITHUB_URL/server.js" -o "$PANEL_DIR/server.js" || {
-        echo -e "${RED}下载server.js失败${NC}"
-        # 创建一个基本的server.js
-        create_basic_server
+    curl -s -L "$REPO_URL/server.js" -o "$PANEL_DIR/server.js" || {
+        echo -e "${RED}下载server.js失败，尝试使用备用源...${NC}"
+        # 尝试使用备用源
+        if [ "$REPO_URL" = "$GITHUB_URL" ]; then
+            curl -s -L "$GITEE_URL/server.js" -o "$PANEL_DIR/server.js"
+        else
+            curl -s -L "$GITHUB_URL/server.js" -o "$PANEL_DIR/server.js"
+        fi
+        
+        # 如果仍然失败，创建基本文件
+        if [ ! -s "$PANEL_DIR/server.js" ]; then
+            echo -e "${RED}使用备用源下载失败，创建基本的server.js${NC}"
+            create_basic_server
+        fi
     }
     
     # 下载package.json
     echo -e "${BLUE}下载package.json...${NC}"
-    curl -s -L "$GITHUB_URL/package.json" -o "$PANEL_DIR/package.json" || {
-        echo -e "${RED}下载package.json失败${NC}"
-        # 创建一个基本的package.json
-        create_basic_package
+    curl -s -L "$REPO_URL/package.json" -o "$PANEL_DIR/package.json" || {
+        echo -e "${RED}下载package.json失败，尝试使用备用源...${NC}"
+        # 尝试使用备用源
+        if [ "$REPO_URL" = "$GITHUB_URL" ]; then
+            curl -s -L "$GITEE_URL/package.json" -o "$PANEL_DIR/package.json"
+        else
+            curl -s -L "$GITHUB_URL/package.json" -o "$PANEL_DIR/package.json"
+        fi
+        
+        # 如果仍然失败，创建基本文件
+        if [ ! -s "$PANEL_DIR/package.json" ]; then
+            echo -e "${RED}使用备用源下载失败，创建基本的package.json${NC}"
+            create_basic_package
+        fi
     }
     
     # 下载前端文件
@@ -68,17 +110,36 @@ download_files() {
     TMP_DIR=$(mktemp -d)
     
     # 尝试下载dist目录
-    curl -s -L "$GITHUB_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html" || {
-        echo -e "${YELLOW}下载index.html失败，尝试下载整个前端包${NC}"
-        curl -s -L "$GITHUB_URL/terraria_panel_frontend.zip" -o "$TMP_DIR/frontend.zip"
+    curl -s -L "$REPO_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html" || {
+        echo -e "${YELLOW}下载index.html失败，尝试使用备用源...${NC}"
         
-        if [ -f "$TMP_DIR/frontend.zip" ] && [ -s "$TMP_DIR/frontend.zip" ]; then
-            echo -e "${BLUE}解压前端文件...${NC}"
-            unzip -q "$TMP_DIR/frontend.zip" -d "$TMP_DIR"
-            cp -r "$TMP_DIR/dist"/* "$PANEL_DIR/dist/"
+        # 尝试使用备用源
+        if [ "$REPO_URL" = "$GITHUB_URL" ]; then
+            curl -s -L "$GITEE_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
         else
-            echo -e "${RED}下载前端文件失败，创建基本的前端文件${NC}"
-            create_basic_html
+            curl -s -L "$GITHUB_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
+        fi
+        
+        if [ ! -s "$PANEL_DIR/dist/index.html" ]; then
+            echo -e "${YELLOW}使用备用源下载失败，尝试下载整个前端包${NC}"
+            
+            # 尝试下载前端包
+            if [ "$REPO_URL" = "$GITHUB_URL" ]; then
+                curl -s -L "$REPO_URL/terraria_panel_frontend.zip" -o "$TMP_DIR/frontend.zip" || \
+                curl -s -L "$GITEE_URL/terraria_panel_frontend.zip" -o "$TMP_DIR/frontend.zip"
+            else
+                curl -s -L "$REPO_URL/terraria_panel_frontend.zip" -o "$TMP_DIR/frontend.zip" || \
+                curl -s -L "$GITHUB_URL/terraria_panel_frontend.zip" -o "$TMP_DIR/frontend.zip"
+            fi
+            
+            if [ -f "$TMP_DIR/frontend.zip" ] && [ -s "$TMP_DIR/frontend.zip" ]; then
+                echo -e "${BLUE}解压前端文件...${NC}"
+                unzip -q "$TMP_DIR/frontend.zip" -d "$TMP_DIR"
+                cp -r "$TMP_DIR/dist"/* "$PANEL_DIR/dist/"
+            else
+                echo -e "${RED}下载前端文件失败，创建基本的前端文件${NC}"
+                create_basic_html
+            fi
         fi
     }
     
@@ -144,6 +205,7 @@ create_basic_html() {
       <div class="card-title">服务器状态</div>
       <p>简易版面板已启动</p>
       <p>请访问 GitHub 获取完整版: <a href="https://github.com/ShourGG/terraria-panel">https://github.com/ShourGG/terraria-panel</a></p>
+      <p>国内镜像: <a href="https://gitee.com/cd-writer/terraria-panel">https://gitee.com/cd-writer/terraria-panel</a></p>
     </div>
   </div>
 </body>
@@ -248,6 +310,9 @@ main() {
     
     # 创建目录
     create_directories
+    
+    # 选择下载源
+    select_source
     
     # 询问是否修改端口
     read -p "是否修改默认端口 $PORT? (y/n): " change_port_answer
