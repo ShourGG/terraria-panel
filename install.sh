@@ -5,8 +5,8 @@
 
 # 全局变量
 VERSION="1.0.0"
-GITHUB_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/main"
-GITEE_URL="https://gitee.com/cd-writer/terraria-panel/raw/main"
+GITHUB_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui"
+GITEE_URL="https://gitee.com/cd-writer/terraria-panel/raw/koi-ui"
 REPO_URL=""
 BASE_DIR="$HOME/terrariaPanel"
 CONFIG_DIR="$BASE_DIR/config"
