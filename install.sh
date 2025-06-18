@@ -28,17 +28,58 @@ select_source() {
     echo -e "${BLUE}请选择下载源:${NC}"
     echo -e "1) GitHub (国际)"
     echo -e "2) Gitee (中国大陆)"
+    echo -e "3) 自动选择 (推荐)"
     
-    read -p "请输入选项 [1-2，默认1]: " source_option
+    read -p "请输入选项 [1-3，默认3]: " source_option
     
     case $source_option in
+        1)
+            REPO_URL=$GITHUB_URL
+            echo -e "${GREEN}已选择 GitHub 源${NC}"
+            ;;
         2)
             REPO_URL=$GITEE_URL
             echo -e "${GREEN}已选择 Gitee 源${NC}"
             ;;
         *)
-            REPO_URL=$GITHUB_URL
-            echo -e "${GREEN}已选择 GitHub 源${NC}"
+            echo -e "${BLUE}自动选择最快的源...${NC}"
+            # 测试GitHub连接速度
+            start_time=$(date +%s%N)
+            curl -s --connect-timeout 3 -o /dev/null $GITHUB_URL/README.md
+            github_status=$?
+            end_time=$(date +%s%N)
+            github_time=$((($end_time - $start_time)/1000000))
+            
+            # 测试Gitee连接速度
+            start_time=$(date +%s%N)
+            curl -s --connect-timeout 3 -o /dev/null $GITEE_URL/README.md
+            gitee_status=$?
+            end_time=$(date +%s%N)
+            gitee_time=$((($end_time - $start_time)/1000000))
+            
+            # 根据连接状态和速度选择源
+            if [ $github_status -eq 0 ] && [ $gitee_status -eq 0 ]; then
+                # 两个源都可用，选择更快的
+                if [ $github_time -lt $gitee_time ]; then
+                    REPO_URL=$GITHUB_URL
+                    echo -e "${GREEN}已自动选择 GitHub 源 (响应时间: ${github_time}ms)${NC}"
+                else
+                    REPO_URL=$GITEE_URL
+                    echo -e "${GREEN}已自动选择 Gitee 源 (响应时间: ${gitee_time}ms)${NC}"
+                fi
+            elif [ $github_status -eq 0 ]; then
+                # 只有GitHub可用
+                REPO_URL=$GITHUB_URL
+                echo -e "${GREEN}已自动选择 GitHub 源${NC}"
+            elif [ $gitee_status -eq 0 ]; then
+                # 只有Gitee可用
+                REPO_URL=$GITEE_URL
+                echo -e "${GREEN}已自动选择 Gitee 源${NC}"
+            else
+                # 两个源都不可用，默认使用GitHub
+                REPO_URL=$GITHUB_URL
+                echo -e "${YELLOW}两个源都不可用，默认使用 GitHub 源${NC}"
+            fi
             ;;
     esac
 }
@@ -108,23 +149,48 @@ download_files() {
     # 下载前端文件
     echo -e "${BLUE}下载前端文件...${NC}"
     
-    # 尝试下载dist/index.html
-    echo -e "${BLUE}下载index.html...${NC}"
-    curl -s -L "$REPO_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html" || {
-        echo -e "${YELLOW}下载index.html失败，尝试使用备用源...${NC}"
+    # 创建临时目录
+    TMP_DIR=$(mktemp -d)
+    
+    # 下载前端资源包
+    echo -e "${BLUE}下载前端资源包...${NC}"
+    curl -s -L "$REPO_URL/terraria_panel_frontend.tar.gz" -o "$TMP_DIR/frontend.tar.gz" || {
+        echo -e "${YELLOW}下载前端资源包失败，尝试使用备用源...${NC}"
         
         # 尝试使用备用源
         if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-            curl -s -L "$GITEE_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
+            curl -s -L "$GITEE_URL/terraria_panel_frontend.tar.gz" -o "$TMP_DIR/frontend.tar.gz"
         else
-            curl -s -L "$GITHUB_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
+            curl -s -L "$GITHUB_URL/terraria_panel_frontend.tar.gz" -o "$TMP_DIR/frontend.tar.gz"
         fi
         
-        if [ ! -s "$PANEL_DIR/dist/index.html" ]; then
-            echo -e "${RED}下载前端文件失败，创建基本的前端文件${NC}"
-            create_basic_html
+        if [ ! -s "$TMP_DIR/frontend.tar.gz" ]; then
+            echo -e "${YELLOW}使用备用源下载前端资源包失败，尝试下载单个index.html文件...${NC}"
+            
+            # 尝试下载单个index.html文件
+            curl -s -L "$REPO_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html" || {
+                # 尝试使用备用源
+                if [ "$REPO_URL" = "$GITHUB_URL" ]; then
+                    curl -s -L "$GITEE_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
+                else
+                    curl -s -L "$GITHUB_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
+                fi
+                
+                if [ ! -s "$PANEL_DIR/dist/index.html" ]; then
+                    echo -e "${RED}下载前端文件失败，创建基本的前端文件${NC}"
+                    create_basic_html
+                fi
+            }
+        else
+            # 解压前端资源包
+            echo -e "${BLUE}解压前端资源包...${NC}"
+            tar -xzf "$TMP_DIR/frontend.tar.gz" -C "$PANEL_DIR/dist/"
+            echo -e "${GREEN}前端资源包解压完成${NC}"
         fi
     }
+    
+    # 清理临时文件
+    rm -rf "$TMP_DIR"
     
     echo -e "${GREEN}文件下载完成${NC}"
 }
@@ -172,10 +238,12 @@ create_basic_html() {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>泰拉瑞亚服务器管理面板</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f5f5f5; }
     .container { max-width: 800px; margin: 0 auto; }
     .card { background: white; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
     .card-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+    .btn { display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 10px; }
+    .btn:hover { background-color: #45a049; }
   </style>
 </head>
 <body>
@@ -183,9 +251,18 @@ create_basic_html() {
     <h1>泰拉瑞亚服务器管理面板</h1>
     <div class="card">
       <div class="card-title">服务器状态</div>
-      <p>简易版面板已启动</p>
-      <p>请访问 GitHub 获取完整版: <a href="https://github.com/ShourGG/terraria-panel">https://github.com/ShourGG/terraria-panel</a></p>
-      <p>国内镜像: <a href="https://gitee.com/cd-writer/terraria-panel">https://gitee.com/cd-writer/terraria-panel</a></p>
+      <p>面板已成功启动！</p>
+      <p>基于Koi-UI的泰拉瑞亚服务器管理面板，提供简单易用的Web界面来管理您的泰拉瑞亚服务器。</p>
+    </div>
+    <div class="card">
+      <div class="card-title">快速链接</div>
+      <a href="/terraria" class="btn">管理面板</a>
+      <a href="/system" class="btn">系统监控</a>
+    </div>
+    <div class="card">
+      <div class="card-title">项目信息</div>
+      <p>GitHub: <a href="https://github.com/ShourGG/terraria-panel">https://github.com/ShourGG/terraria-panel</a></p>
+      <p>Gitee: <a href="https://gitee.com/cd-writer/terraria-panel">https://gitee.com/cd-writer/terraria-panel</a></p>
     </div>
   </div>
 </body>
