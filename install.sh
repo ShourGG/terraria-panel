@@ -149,48 +149,38 @@ download_files() {
     # 下载前端文件
     echo -e "${BLUE}下载前端文件...${NC}"
     
-    # 创建临时目录
-    TMP_DIR=$(mktemp -d)
+    # 创建dist目录
+    mkdir -p "$PANEL_DIR/dist"
+    mkdir -p "$PANEL_DIR/dist/assets"
     
-    # 下载前端资源包
-    echo -e "${BLUE}下载前端资源包...${NC}"
-    curl -s -L "$REPO_URL/terraria_panel_frontend.tar.gz" -o "$TMP_DIR/frontend.tar.gz" || {
-        echo -e "${YELLOW}下载前端资源包失败，尝试使用备用源...${NC}"
-        
+    # 下载index.html
+    echo -e "${BLUE}下载index.html...${NC}"
+    curl -s -L "$REPO_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html" || {
         # 尝试使用备用源
         if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-            curl -s -L "$GITEE_URL/terraria_panel_frontend.tar.gz" -o "$TMP_DIR/frontend.tar.gz"
+            curl -s -L "$GITEE_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
         else
-            curl -s -L "$GITHUB_URL/terraria_panel_frontend.tar.gz" -o "$TMP_DIR/frontend.tar.gz"
+            curl -s -L "$GITHUB_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
         fi
         
-        if [ ! -s "$TMP_DIR/frontend.tar.gz" ]; then
-            echo -e "${YELLOW}使用备用源下载前端资源包失败，尝试下载单个index.html文件...${NC}"
-            
-            # 尝试下载单个index.html文件
-            curl -s -L "$REPO_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html" || {
-                # 尝试使用备用源
-                if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-                    curl -s -L "$GITEE_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
-                else
-                    curl -s -L "$GITHUB_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
-                fi
-                
-                if [ ! -s "$PANEL_DIR/dist/index.html" ]; then
-                    echo -e "${RED}下载前端文件失败，创建基本的前端文件${NC}"
-                    create_basic_html
-                fi
-            }
-        else
-            # 解压前端资源包
-            echo -e "${BLUE}解压前端资源包...${NC}"
-            tar -xzf "$TMP_DIR/frontend.tar.gz" -C "$PANEL_DIR/dist/"
-            echo -e "${GREEN}前端资源包解压完成${NC}"
+        if [ ! -s "$PANEL_DIR/dist/index.html" ]; then
+            echo -e "${RED}下载index.html失败，创建基本的前端文件${NC}"
+            create_basic_html
         fi
     }
     
-    # 清理临时文件
-    rm -rf "$TMP_DIR"
+    # 下载vite.png
+    echo -e "${BLUE}下载vite.png...${NC}"
+    curl -s -L "$REPO_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png" || {
+        # 尝试使用备用源
+        if [ "$REPO_URL" = "$GITHUB_URL" ]; then
+            curl -s -L "$GITEE_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png"
+        else
+            curl -s -L "$GITHUB_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png"
+        fi
+    }
+    
+    echo -e "${GREEN}前端文件下载完成${NC}"
     
     echo -e "${GREEN}文件下载完成${NC}"
 }
