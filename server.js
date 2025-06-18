@@ -46,12 +46,25 @@ app.use((req, res, next) => {
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
 
+// 检查dist目录是否存在，如果不存在则尝试使用面板目录下的dist
+if (!fs.existsSync(distPath) || !fs.existsSync(path.join(distPath, 'index.html'))) {
+  console.log('本地dist目录不存在或不完整，尝试使用面板安装目录下的dist');
+  const panelDistPath = path.join(panelDir, 'dist');
+  if (fs.existsSync(panelDistPath) && fs.existsSync(path.join(panelDistPath, 'index.html'))) {
+    console.log('使用面板安装目录下的dist:', panelDistPath);
+    app.use(express.static(panelDistPath));
+  } else {
+    console.warn('警告：找不到有效的前端文件目录');
+  }
+}
+
 // API中间件
 app.use(express.json());
 
 // 获取用户主目录
 const homeDir = os.homedir();
 const terrariaDir = path.join(homeDir, 'terrariaPanel', 'terraria');
+const panelDir = path.join(homeDir, 'terrariaPanel', 'panel');
 
 // 确保目录存在
 if (!fs.existsSync(terrariaDir)) {
