@@ -401,6 +401,11 @@ linuxRouter.get('/system/resources', (req, res) => {
 app.use('/api/terraria', terrariaRouter);
 app.use('/api/linux', linuxRouter);
 
+// 添加路由重定向
+app.get('/terraria', (req, res) => {
+  res.redirect('/');
+});
+
 // 处理404 - 将所有其他请求重定向到前端路由
 app.use((req, res) => {
   if (req.path.startsWith('/api')) {
