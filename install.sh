@@ -107,9 +107,9 @@ download_files() {
     
     # 下载前端文件
     echo -e "${BLUE}下载前端文件...${NC}"
-    TMP_DIR=$(mktemp -d)
     
-    # 尝试下载dist目录
+    # 尝试下载dist/index.html
+    echo -e "${BLUE}下载index.html...${NC}"
     curl -s -L "$REPO_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html" || {
         echo -e "${YELLOW}下载index.html失败，尝试使用备用源...${NC}"
         
@@ -121,30 +121,10 @@ download_files() {
         fi
         
         if [ ! -s "$PANEL_DIR/dist/index.html" ]; then
-            echo -e "${YELLOW}使用备用源下载失败，尝试下载整个前端包${NC}"
-            
-            # 尝试下载前端包
-            if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-                curl -s -L "$REPO_URL/terraria_panel_frontend.zip" -o "$TMP_DIR/frontend.zip" || \
-                curl -s -L "$GITEE_URL/terraria_panel_frontend.zip" -o "$TMP_DIR/frontend.zip"
-            else
-                curl -s -L "$REPO_URL/terraria_panel_frontend.zip" -o "$TMP_DIR/frontend.zip" || \
-                curl -s -L "$GITHUB_URL/terraria_panel_frontend.zip" -o "$TMP_DIR/frontend.zip"
-            fi
-            
-            if [ -f "$TMP_DIR/frontend.zip" ] && [ -s "$TMP_DIR/frontend.zip" ]; then
-                echo -e "${BLUE}解压前端文件...${NC}"
-                unzip -q "$TMP_DIR/frontend.zip" -d "$TMP_DIR"
-                cp -r "$TMP_DIR/dist"/* "$PANEL_DIR/dist/"
-            else
-                echo -e "${RED}下载前端文件失败，创建基本的前端文件${NC}"
-                create_basic_html
-            fi
+            echo -e "${RED}下载前端文件失败，创建基本的前端文件${NC}"
+            create_basic_html
         fi
     }
-    
-    # 清理临时文件
-    rm -rf "$TMP_DIR"
     
     echo -e "${GREEN}文件下载完成${NC}"
 }
