@@ -149,38 +149,116 @@ download_files() {
     # 下载前端文件
     echo -e "${BLUE}下载前端文件...${NC}"
     
-    # 创建dist目录
-    mkdir -p "$PANEL_DIR/dist"
-    mkdir -p "$PANEL_DIR/dist/assets"
+    # 创建临时目录
+    TMP_DIR=$(mktemp -d)
     
-    # 下载index.html
-    echo -e "${BLUE}下载index.html...${NC}"
-    curl -s -L "$REPO_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html" || {
-        # 尝试使用备用源
-        if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-            curl -s -L "$GITEE_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
+    # 尝试克隆整个仓库来获取所有文件
+    echo -e "${BLUE}尝试克隆仓库获取所有前端文件...${NC}"
+    
+    # 检查是否安装了git
+    if command -v git &> /dev/null; then
+        echo -e "${BLUE}使用git克隆仓库...${NC}"
+        
+        # 尝试从GitHub克隆
+        if git clone --depth=1 -b koi-ui https://github.com/ShourGG/terraria-panel.git "$TMP_DIR/repo" &> /dev/null; then
+            echo -e "${GREEN}成功从GitHub克隆仓库${NC}"
         else
-            curl -s -L "$GITHUB_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
+            # 如果GitHub失败，尝试从Gitee克隆
+            echo -e "${YELLOW}从GitHub克隆失败，尝试从Gitee克隆...${NC}"
+            if git clone --depth=1 -b koi-ui https://gitee.com/cd-writer/terraria-panel.git "$TMP_DIR/repo" &> /dev/null; then
+                echo -e "${GREEN}成功从Gitee克隆仓库${NC}"
+            else
+                echo -e "${RED}克隆仓库失败，将使用单文件下载方式${NC}"
+                USE_SINGLE_FILE_DOWNLOAD=true
+            fi
         fi
         
-        if [ ! -s "$PANEL_DIR/dist/index.html" ]; then
-            echo -e "${RED}下载index.html失败，创建基本的前端文件${NC}"
-            create_basic_html
-        fi
-    }
-    
-    # 下载vite.png
-    echo -e "${BLUE}下载vite.png...${NC}"
-    curl -s -L "$REPO_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png" || {
-        # 尝试使用备用源
-        if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-            curl -s -L "$GITEE_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png"
+        # 如果克隆成功，复制dist目录
+        if [ -d "$TMP_DIR/repo/dist" ] && [ ! "$USE_SINGLE_FILE_DOWNLOAD" = true ]; then
+            echo -e "${BLUE}复制前端文件到面板目录...${NC}"
+            mkdir -p "$PANEL_DIR/dist"
+            cp -r "$TMP_DIR/repo/dist/"* "$PANEL_DIR/dist/"
+            echo -e "${GREEN}前端文件复制完成${NC}"
         else
-            curl -s -L "$GITHUB_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png"
+            echo -e "${YELLOW}克隆的仓库中没有dist目录，将使用单文件下载方式${NC}"
+            USE_SINGLE_FILE_DOWNLOAD=true
         fi
-    }
+    else
+        echo -e "${YELLOW}未安装git，将使用单文件下载方式${NC}"
+        USE_SINGLE_FILE_DOWNLOAD=true
+    fi
     
-    echo -e "${GREEN}前端文件下载完成${NC}"
+    # 如果需要使用单文件下载方式
+    if [ "$USE_SINGLE_FILE_DOWNLOAD" = true ]; then
+        echo -e "${BLUE}使用单文件下载方式...${NC}"
+        
+        # 创建dist目录
+        mkdir -p "$PANEL_DIR/dist"
+        mkdir -p "$PANEL_DIR/dist/assets"
+        
+        # 下载index.html
+        echo -e "${BLUE}下载index.html...${NC}"
+        curl -s -L "$REPO_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html" || {
+            # 尝试使用备用源
+            if [ "$REPO_URL" = "$GITHUB_URL" ]; then
+                curl -s -L "$GITEE_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
+            else
+                curl -s -L "$GITHUB_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
+            fi
+            
+            if [ ! -s "$PANEL_DIR/dist/index.html" ]; then
+                echo -e "${RED}下载index.html失败，创建基本的前端文件${NC}"
+                create_basic_html
+            fi
+        }
+        
+        # 下载vite.png
+        echo -e "${BLUE}下载vite.png...${NC}"
+        curl -s -L "$REPO_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png" || {
+            # 尝试使用备用源
+            if [ "$REPO_URL" = "$GITHUB_URL" ]; then
+                curl -s -L "$GITEE_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png"
+            else
+                curl -s -L "$GITHUB_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png"
+            fi
+        }
+        
+        # 下载assets目录下的常见文件
+        echo -e "${BLUE}下载assets目录文件...${NC}"
+        
+        # 定义要下载的assets文件列表 - 包含常见的文件名
+        ASSETS_FILES=(
+            "403-CAEEPw8e.js"
+            "403-CUQbA87J.png"
+            "403-GIJaS4Sw.css"
+            "404-BZEtK4a9.js"
+            "404-CwMLa_ZI.png"
+            "404-CzTII790.css"
+            "500-BjsfdhNX.css"
+            "500-CM9wJmPF.png"
+            "500-DRb14bnc.js"
+            "KoiCard-B0fBo9JU.js"
+            "KoiFont-QsAh7QwZ.woff2"
+            "KoiLeftChart-qjQYWbBF.js"
+            "KoiRightChart-D6KVV8OX.js"
+        )
+        
+        # 下载每个assets文件
+        for file in "${ASSETS_FILES[@]}"; do
+            echo -e "${BLUE}尝试下载 $file...${NC}"
+            curl -s -L "$REPO_URL/dist/assets/$file" -o "$PANEL_DIR/dist/assets/$file" || {
+                # 尝试使用备用源
+                if [ "$REPO_URL" = "$GITHUB_URL" ]; then
+                    curl -s -L "$GITEE_URL/dist/assets/$file" -o "$PANEL_DIR/dist/assets/$file"
+                else
+                    curl -s -L "$GITHUB_URL/dist/assets/$file" -o "$PANEL_DIR/dist/assets/$file"
+                fi
+            }
+        done
+    fi
+    
+    # 清理临时目录
+    rm -rf "$TMP_DIR"
     
     echo -e "${GREEN}文件下载完成${NC}"
 }
