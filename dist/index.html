@@ -1,160 +1,36 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/assets/vite-y-q6uXXz.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KOI-ADMIN</title>
-    <!-- 加载第一步开始 -->
-    <style>
-      .preloader {
-        background: #5838fc;
-        width: 100%;
-        height: 100%;
-        position: fixed;
-        left: 0;
-        top: 0;
-        z-index: 9999;
-      }
-
-      .loaderInner {
-        width: 70px;
-        height: 60px;
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        margin: auto;
-      }
-
-      .mask {
-        position: absolute;
-        border-radius: 2px;
-        overflow: hidden;
-        perspective: 1000;
-        backface-visibility: hidden;
-      }
-
-      .plane {
-        background: #fff;
-        width: 400%;
-        height: 100%;
-        position: absolute;
-        transform: translate3d(0px, 0, 0);
-        /* transition: all 0.8s ease; */
-        z-index: 100;
-        perspective: 1000;
-        backface-visibility: hidden;
-      }
-
-      .animation {
-        transition: all 0.3s ease;
-      }
-
-      #top .plane {
-        z-index: 2000;
-        animation: trans1 1.3s ease-in infinite 0s backwards;
-      }
-
-      #middle .plane {
-        transform: translate3d(0px, 0, 0);
-        background: #fff;
-        animation: trans2 1.3s linear infinite 0.3s backwards;
-      }
-
-      #bottom .plane {
-        z-index: 2000;
-        animation: trans3 1.3s ease-out infinite 0.7s backwards;
-      }
-
-      #top {
-        width: 53px;
-        height: 20px;
-        left: 20px;
-        transform: skew(-15deg, 0);
-        z-index: 100;
-      }
-
-      #middle {
-        width: 33px;
-        height: 20px;
-        left: 20px;
-        top: 15px;
-        transform: skew(-15deg, 40deg);
-      }
-
-      #bottom {
-        width: 53px;
-        height: 20px;
-        top: 30px;
-        transform: skew(-15deg, 0);
-      }
-
-      .preloader p {
-        color: #fff;
-        position: absolute;
-        left: -50px;
-        top: 60px;
-        text-align: center;
-        font-size: 11px;
-        font-weight: 600;
-        font-style: italic;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        margin: 0;
-        width: 200px;
-      }
-
-      @keyframes trans1 {
-        from {
-          transform: translate3d(53px, 0, 0);
-        }
-        to {
-          transform: translate3d(-250px, 0, 0);
-        }
-      }
-
-      @keyframes trans2 {
-        from {
-          transform: translate3d(-160px, 0, 0);
-        }
-        to {
-          transform: translate3d(53px, 0, 0);
-        }
-      }
-
-      @keyframes trans3 {
-        from {
-          transform: translate3d(53px, 0, 0);
-        }
-        to {
-          transform: translate3d(-220px, 0, 0);
-        }
-      }
-    </style>
-    <!-- 加载第一步结束 -->
-    <script type="module" crossorigin src="/assets/index-DpLe_dtH.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-G_zUTdBj.css">
-  </head>
-  <body>
-    <div id="app">
-      <!-- 第二步开始 -->
-      <div class="preloader" style="/* display: none; */">
-        <div class="loaderInner">
-          <div id="top" class="mask">
-            <div class="plane"></div>
-          </div>
-          <div id="middle" class="mask">
-            <div class="plane"></div>
-          </div>
-          <div id="bottom" class="mask">
-            <div class="plane"></div>
-          </div>
-          <p>美好的事情即将发生，请耐心等待...</p>
-        </div>
-      </div>
-      <!-- 第二步结束 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>泰拉瑞亚服务器管理面板</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f5f5f5; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .card { background: white; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
+    .card-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+    .btn { display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 10px; }
+    .btn:hover { background-color: #45a049; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>泰拉瑞亚服务器管理面板</h1>
+    <div class="card">
+      <div class="card-title">服务器状态</div>
+      <p>面板已成功启动！</p>
+      <p>基于Koi-UI的泰拉瑞亚服务器管理面板，提供简单易用的Web界面来管理您的泰拉瑞亚服务器。</p>
     </div>
-  </body>
+    <div class="card">
+      <div class="card-title">快速链接</div>
+      <a href="/terraria" class="btn">管理面板</a>
+      <a href="/system" class="btn">系统监控</a>
+    </div>
+    <div class="card">
+      <div class="card-title">项目信息</div>
+      <p>GitHub: <a href="https://github.com/ShourGG/terraria-panel">https://github.com/ShourGG/terraria-panel</a></p>
+      <p>Gitee: <a href="https://gitee.com/cd-writer/terraria-panel">https://gitee.com/cd-writer/terraria-panel</a></p>
+    </div>
+  </div>
+</body>
 </html>
