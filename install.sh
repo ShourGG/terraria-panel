@@ -4,7 +4,7 @@
 # Koi-UI版
 
 # 全局变量
-VERSION="1.0.3"  # 增加版本号
+VERSION="1.0.4"  # 增加版本号
 GITHUB_REPO="https://github.com/ShourGG/terraria-panel.git"
 GITEE_REPO="https://gitee.com/cd-writer/terraria-panel.git"
 GITHUB_SCRIPT_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui/install.sh"

@@ -54,12 +54,112 @@ const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'))) {
   console.log('使用本地dist目录:', distPath);
   app.use(express.static(distPath));
+  
+  // 修改页面标题和首页重定向
+  app.get('/', (req, res) => {
+    // 读取index.html文件
+    let indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
+    
+    // 修改标题为"泰拉瑞亚服务器管理面板"
+    indexHtml = indexHtml.replace(/<title>.*?<\/title>/, '<title>泰拉瑞亚服务器管理面板</title>');
+    
+    // 添加脚本，将首页重定向到泰拉瑞亚管理页面
+    const redirectScript = `
+    <script>
+      // 页面加载完成后执行
+      window.addEventListener('DOMContentLoaded', function() {
+        // 等待Vue路由初始化完成
+        setTimeout(function() {
+          // 如果当前路径是首页，重定向到泰拉瑞亚管理页面
+          if (window.location.pathname === '/' || window.location.pathname === '/home/index') {
+            // 查找泰拉瑞亚管理菜单并点击
+            const terrariaMenu = document.querySelector('a[href*="/terraria"]');
+            if (terrariaMenu) {
+              terrariaMenu.click();
+            } else {
+              // 如果找不到菜单，直接通过路由跳转
+              if (window.location.href.indexOf('/terraria') === -1) {
+                window.location.href = '/terraria/overview';
+              }
+            }
+            
+            // 隐藏其他无关菜单
+            setTimeout(function() {
+              const menuItems = document.querySelectorAll('.el-menu-item, .el-sub-menu');
+              menuItems.forEach(function(item) {
+                const text = item.textContent || '';
+                if (text.indexOf('泰拉瑞亚') === -1 && text.indexOf('首页') === -1) {
+                  item.style.display = 'none';
+                }
+              });
+            }, 500);
+          }
+        }, 1000);
+      });
+    </script>
+    `;
+    
+    // 将脚本插入到head标签结束前
+    indexHtml = indexHtml.replace('</head>', redirectScript + '</head>');
+    
+    res.send(indexHtml);
+  });
 } else {
   console.log('本地dist目录不存在或不完整，尝试使用面板安装目录下的dist');
   const panelDistPath = path.join(panelDir, 'dist');
   if (fs.existsSync(panelDistPath) && fs.existsSync(path.join(panelDistPath, 'index.html'))) {
     console.log('使用面板安装目录下的dist:', panelDistPath);
     app.use(express.static(panelDistPath));
+    
+    // 修改页面标题和首页重定向
+    app.get('/', (req, res) => {
+      // 读取index.html文件
+      let indexHtml = fs.readFileSync(path.join(panelDistPath, 'index.html'), 'utf8');
+      
+      // 修改标题为"泰拉瑞亚服务器管理面板"
+      indexHtml = indexHtml.replace(/<title>.*?<\/title>/, '<title>泰拉瑞亚服务器管理面板</title>');
+      
+      // 添加脚本，将首页重定向到泰拉瑞亚管理页面
+      const redirectScript = `
+      <script>
+        // 页面加载完成后执行
+        window.addEventListener('DOMContentLoaded', function() {
+          // 等待Vue路由初始化完成
+          setTimeout(function() {
+            // 如果当前路径是首页，重定向到泰拉瑞亚管理页面
+            if (window.location.pathname === '/' || window.location.pathname === '/home/index') {
+              // 查找泰拉瑞亚管理菜单并点击
+              const terrariaMenu = document.querySelector('a[href*="/terraria"]');
+              if (terrariaMenu) {
+                terrariaMenu.click();
+              } else {
+                // 如果找不到菜单，直接通过路由跳转
+                if (window.location.href.indexOf('/terraria') === -1) {
+                  window.location.href = '/terraria/overview';
+                }
+              }
+              
+              // 隐藏其他无关菜单
+              setTimeout(function() {
+                const menuItems = document.querySelectorAll('.el-menu-item, .el-sub-menu');
+                menuItems.forEach(function(item) {
+                  const text = item.textContent || '';
+                  if (text.indexOf('泰拉瑞亚') === -1 && text.indexOf('首页') === -1) {
+                    item.style.display = 'none';
+                  }
+                });
+              }, 500);
+            }
+          }, 1000);
+        });
+      </script>
+      `;
+      
+      // 将脚本插入到head标签结束前
+      indexHtml = indexHtml.replace('</head>', redirectScript + '</head>');
+      
+      res.send(indexHtml);
+    });
   } else {
     console.warn('警告：找不到有效的前端文件目录');
   }
