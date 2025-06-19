@@ -4,7 +4,7 @@
 # Koi-UI版
 
 # 全局变量
-VERSION="1.0.1"  # 增加版本号
+VERSION="1.0.2"  # 增加版本号
 GITHUB_REPO="https://github.com/ShourGG/terraria-panel.git"
 GITEE_REPO="https://gitee.com/cd-writer/terraria-panel.git"
 GITHUB_SCRIPT_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui/install.sh"
@@ -126,6 +126,86 @@ change_port() {
     read -p "请输入新的端口号(1-65535): " NEW_PORT
     
     if [[ "$NEW_PORT" =~ ^[0-9]+$ ]] && [ "$NEW_PORT" -ge 1 ] && [ "$NEW_PORT" -le 65535 ]; then
+        # 检查端口是否被占用
+        if command -v lsof &> /dev/null; then
+            # 使用lsof检查端口占用（Linux/macOS）
+            PORT_PID=$(lsof -ti:$NEW_PORT)
+            if [ -n "$PORT_PID" ]; then
+                echo -e "${YELLOW}警告: 端口 $NEW_PORT 已被进程 $PORT_PID 占用${NC}"
+                read -p "是否终止该进程并使用此端口? [y/N]: " kill_process
+                if [[ "$kill_process" =~ ^[Yy]$ ]]; then
+                    echo -e "${YELLOW}正在终止进程 $PORT_PID...${NC}"
+                    kill -9 $PORT_PID
+                    if [ $? -eq 0 ]; then
+                        echo -e "${GREEN}进程已终止${NC}"
+                    else
+                        echo -e "${RED}无法终止进程，请尝试使用其他端口${NC}"
+                        return 1
+                    fi
+                else
+                    echo -e "${YELLOW}已取消端口修改${NC}"
+                    return 1
+                fi
+            fi
+        elif command -v netstat &> /dev/null; then
+            # 使用netstat检查端口占用（Windows/Linux）
+            if [ "$OSTYPE" == "msys" ] || [ "$OSTYPE" == "win32" ]; then
+                # Windows系统
+                PORT_INFO=$(netstat -ano | grep -E "TCP|UDP" | grep -E ":$NEW_PORT\s")
+                if [ -n "$PORT_INFO" ]; then
+                    PORT_PID=$(echo "$PORT_INFO" | awk '{print $5}')
+                    echo -e "${YELLOW}警告: 端口 $NEW_PORT 已被进程 $PORT_PID 占用${NC}"
+                    read -p "是否终止该进程并使用此端口? [y/N]: " kill_process
+                    if [[ "$kill_process" =~ ^[Yy]$ ]]; then
+                        echo -e "${YELLOW}正在终止进程 $PORT_PID...${NC}"
+                        taskkill /F /PID $PORT_PID
+                        if [ $? -eq 0 ]; then
+                            echo -e "${GREEN}进程已终止${NC}"
+                        else
+                            echo -e "${RED}无法终止进程，请尝试使用其他端口${NC}"
+                            return 1
+                        fi
+                    else
+                        echo -e "${YELLOW}已取消端口修改${NC}"
+                        return 1
+                    fi
+                fi
+            else
+                # Linux系统使用netstat
+                PORT_INFO=$(netstat -tuln | grep ":$NEW_PORT\s")
+                if [ -n "$PORT_INFO" ]; then
+                    # 尝试找到占用端口的进程
+                    PORT_PID=$(netstat -tulnp 2>/dev/null | grep ":$NEW_PORT\s" | awk '{print $7}' | cut -d'/' -f1)
+                    if [ -n "$PORT_PID" ]; then
+                        echo -e "${YELLOW}警告: 端口 $NEW_PORT 已被进程 $PORT_PID 占用${NC}"
+                        read -p "是否终止该进程并使用此端口? [y/N]: " kill_process
+                        if [[ "$kill_process" =~ ^[Yy]$ ]]; then
+                            echo -e "${YELLOW}正在终止进程 $PORT_PID...${NC}"
+                            kill -9 $PORT_PID
+                            if [ $? -eq 0 ]; then
+                                echo -e "${GREEN}进程已终止${NC}"
+                            else
+                                echo -e "${RED}无法终止进程，请尝试使用其他端口${NC}"
+                                return 1
+                            fi
+                        else
+                            echo -e "${YELLOW}已取消端口修改${NC}"
+                            return 1
+                        fi
+                    else
+                        echo -e "${YELLOW}警告: 端口 $NEW_PORT 已被占用，但无法确定进程ID${NC}"
+                        read -p "是否继续使用此端口? [y/N]: " continue_use
+                        if [[ ! "$continue_use" =~ ^[Yy]$ ]]; then
+                            echo -e "${YELLOW}已取消端口修改${NC}"
+                            return 1
+                        fi
+                    fi
+                fi
+            fi
+        else
+            echo -e "${YELLOW}无法检查端口占用情况，请确保端口 $NEW_PORT 未被使用${NC}"
+        fi
+        
         PORT=$NEW_PORT
         echo -e "${GREEN}端口已修改为: ${PORT}${NC}"
         
