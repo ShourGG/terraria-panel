@@ -42,12 +42,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// 静态文件服务 - 托管前端文件
-const distPath = path.join(__dirname, 'dist');
-app.use(express.static(distPath));
+// 获取用户主目录
+const homeDir = os.homedir();
+const terrariaDir = path.join(homeDir, 'terrariaPanel', 'terraria');
+const panelDir = path.join(homeDir, 'terrariaPanel', 'panel');
 
-// 检查dist目录是否存在，如果不存在则尝试使用面板目录下的dist
-if (!fs.existsSync(distPath) || !fs.existsSync(path.join(distPath, 'index.html'))) {
+// 静态文件服务 - 使用dist目录
+const distPath = path.join(__dirname, 'dist');
+
+// 检查dist目录是否存在
+if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'))) {
+  console.log('使用本地dist目录:', distPath);
+  app.use(express.static(distPath));
+} else {
   console.log('本地dist目录不存在或不完整，尝试使用面板安装目录下的dist');
   const panelDistPath = path.join(panelDir, 'dist');
   if (fs.existsSync(panelDistPath) && fs.existsSync(path.join(panelDistPath, 'index.html'))) {
@@ -60,11 +67,6 @@ if (!fs.existsSync(distPath) || !fs.existsSync(path.join(distPath, 'index.html')
 
 // API中间件
 app.use(express.json());
-
-// 获取用户主目录
-const homeDir = os.homedir();
-const terrariaDir = path.join(homeDir, 'terrariaPanel', 'terraria');
-const panelDir = path.join(homeDir, 'terrariaPanel', 'panel');
 
 // 确保目录存在
 if (!fs.existsSync(terrariaDir)) {
@@ -406,12 +408,23 @@ app.get('/terraria', (req, res) => {
   res.redirect('/');
 });
 
-// 处理404 - 将所有其他请求重定向到前端路由
+// 处理所有前端路由 - 支持Vue Router的history模式
 app.use((req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'API不存在' });
   }
-  res.sendFile(path.join(distPath, 'index.html'));
+  
+  // 根据使用的前端目录决定返回哪个index.html
+  if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'))) {
+    res.sendFile(path.join(distPath, 'index.html'));
+  } else {
+    const panelDistPath = path.join(panelDir, 'dist');
+    if (fs.existsSync(panelDistPath) && fs.existsSync(path.join(panelDistPath, 'index.html'))) {
+      res.sendFile(path.join(panelDistPath, 'index.html'));
+    } else {
+      res.status(404).send('找不到前端文件');
+    }
+  }
 });
 
 // 启动服务器

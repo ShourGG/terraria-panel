@@ -4,7 +4,7 @@
 # Koi-UI版
 
 # 全局变量
-VERSION="1.0.2"  # 增加版本号
+VERSION="1.0.3"  # 增加版本号
 GITHUB_REPO="https://github.com/ShourGG/terraria-panel.git"
 GITEE_REPO="https://gitee.com/cd-writer/terraria-panel.git"
 GITHUB_SCRIPT_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui/install.sh"
@@ -250,18 +250,18 @@ download_panel() {
     if git clone --depth=1 -b koi-ui "$REPO_URL" "$TMP_DIR/repo"; then
         echo -e "${GREEN}克隆成功${NC}"
         
-        # 检查是否包含koi-ui-master目录
-        if [ -d "$TMP_DIR/repo/koi-ui-master" ]; then
+        # 检查是否包含dist目录
+        if [ -d "$TMP_DIR/repo/dist" ]; then
             echo -e "${BLUE}复制文件到面板目录...${NC}"
             
             # 复制所有文件到面板目录
             cp -r "$TMP_DIR/repo/"* "$PANEL_DIR/"
             
-            # 确保koi-ui-master目录存在
-            if [ -d "$PANEL_DIR/koi-ui-master" ]; then
-                echo -e "${GREEN}Koi-UI界面文件已复制${NC}"
+            # 确保dist目录存在
+            if [ -d "$PANEL_DIR/dist" ]; then
+                echo -e "${GREEN}UI界面文件已复制${NC}"
             else
-                echo -e "${RED}复制Koi-UI界面文件失败${NC}"
+                echo -e "${RED}复制UI界面文件失败${NC}"
                 return 1
             fi
             
@@ -270,7 +270,7 @@ download_panel() {
             
             return 0
         else
-            echo -e "${RED}仓库中不包含koi-ui-master目录${NC}"
+            echo -e "${RED}仓库中不包含dist目录${NC}"
             return 1
         fi
     else
