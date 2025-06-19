@@ -570,26 +570,58 @@ update_startup_script() {
         return 1
     fi
     
-    # 检查新版本
-    NEW_VERSION=$(grep "^VERSION=" "$TEMP_SCRIPT" | cut -d'"' -f2)
-    if [ -z "$NEW_VERSION" ]; then
-        echo -e "${RED}无法确定新脚本版本${NC}"
+    # 检查远程版本号
+    REMOTE_VERSION=$(grep "^VERSION=" "$TEMP_SCRIPT" | cut -d'"' -f2)
+    if [ -z "$REMOTE_VERSION" ]; then
+        echo -e "${RED}无法确定远程脚本版本${NC}"
         rm -f "$TEMP_SCRIPT"
         return 1
     fi
     
     echo -e "${BLUE}当前版本: ${VERSION}${NC}"
-    echo -e "${BLUE}最新版本: ${NEW_VERSION}${NC}"
+    echo -e "${BLUE}远程版本: ${REMOTE_VERSION}${NC}"
     
-    # 比较版本
-    if [ "$VERSION" = "$NEW_VERSION" ]; then
-        echo -e "${GREEN}已经是最新版本${NC}"
-        rm -f "$TEMP_SCRIPT"
-        return 0
+    # 比较版本号
+    if [ "$VERSION" = "$REMOTE_VERSION" ]; then
+        # 版本号相同，检查文件内容是否有变化
+        echo -e "${BLUE}版本号相同，检查文件内容是否有更新...${NC}"
+        
+        # 创建临时文件存储当前脚本（去除版本号行）
+        CURRENT_CONTENT="/tmp/current_content.$$"
+        REMOTE_CONTENT="/tmp/remote_content.$$"
+        
+        # 提取脚本内容（排除版本号行）
+        grep -v "^VERSION=" "$0" > "$CURRENT_CONTENT"
+        grep -v "^VERSION=" "$TEMP_SCRIPT" > "$REMOTE_CONTENT"
+        
+        # 比较文件内容
+        if diff -q "$CURRENT_CONTENT" "$REMOTE_CONTENT" &>/dev/null; then
+            echo -e "${GREEN}脚本内容无变化，已是最新版本${NC}"
+            # 清理临时文件
+            rm -f "$TEMP_SCRIPT" "$CURRENT_CONTENT" "$REMOTE_CONTENT"
+            return 0
+        else
+            echo -e "${YELLOW}检测到脚本内容有更新${NC}"
+            # 计算新版本号
+            IFS='.' read -r -a version_parts <<< "$VERSION"
+            patch_version=$((${version_parts[2]} + 1))
+            NEW_VERSION="${version_parts[0]}.${version_parts[1]}.$patch_version"
+            
+            # 更新临时脚本中的版本号
+            sed -i "s/^VERSION=.*$/VERSION=\"$NEW_VERSION\"  # 增加版本号/" "$TEMP_SCRIPT"
+            
+            echo -e "${BLUE}更新后版本: ${NEW_VERSION}${NC}"
+        fi
+        
+        # 清理临时文件
+        rm -f "$CURRENT_CONTENT" "$REMOTE_CONTENT"
+    else
+        # 远程版本号不同，直接使用远程版本号
+        NEW_VERSION=$REMOTE_VERSION
     fi
     
     # 询问是否更新
-    read -p "发现新版本，是否更新？[Y/n]: " update_option
+    read -p "是否更新脚本？[Y/n]: " update_option
     if [[ ! "$update_option" =~ ^[Nn]$ ]]; then
         # 备份当前脚本
         BACKUP_SCRIPT="$BASE_DIR/install.sh.bak"
@@ -600,17 +632,20 @@ update_startup_script() {
         chmod +x "$0"
         
         echo -e "${GREEN}脚本已更新到版本 ${NEW_VERSION}${NC}"
-        echo -e "${YELLOW}请重新运行脚本以应用更新${NC}"
+        echo -e "${BLUE}旧版本已备份到 ${BACKUP_SCRIPT}${NC}"
         
-        # 清理临时文件
-        rm -f "$TEMP_SCRIPT"
-        
-        # 退出脚本
-        exit 0
+        # 询问是否重新执行脚本
+        read -p "是否立即重新执行脚本？[Y/n]: " restart_option
+        if [[ ! "$restart_option" =~ ^[Nn]$ ]]; then
+            exec "$0"
+            exit 0
+        fi
     else
-        echo -e "${YELLOW}取消更新${NC}"
-        rm -f "$TEMP_SCRIPT"
+        echo -e "${YELLOW}已取消更新${NC}"
     fi
+    
+    # 清理临时文件
+    rm -f "$TEMP_SCRIPT"
 }
 
 # 设置虚拟内存

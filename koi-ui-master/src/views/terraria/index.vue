@@ -473,6 +473,12 @@
       </el-col>
     </el-row>
     
+    <!-- 版本信息 -->
+    <div class="version-info">
+      <span>泰拉瑞亚服务器管理面板</span>
+      <span class="version-number">v1.0.6</span>
+    </div>
+    
     <!-- TShock上传对话框 -->
     <el-dialog
       v-model="tshockUploadDialogVisible"
@@ -1332,13 +1338,13 @@ onUnmounted(() => {
 }
 
 .server-status {
-  padding: 8px 0;
+  padding: 10px 0;
 }
 
 .status-indicator {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 15px;
 }
 
 .status-dot {
@@ -1350,20 +1356,14 @@ onUnmounted(() => {
 
 .status-running {
   background-color: #67C23A;
-  box-shadow: 0 0 10px rgba(103, 194, 58, 0.8);
-  animation: pulse 1.5s infinite;
 }
 
 .status-starting {
   background-color: #E6A23C;
-  box-shadow: 0 0 10px rgba(230, 162, 60, 0.8);
-  animation: pulse 0.8s infinite;
 }
 
 .status-stopping {
   background-color: #F56C6C;
-  box-shadow: 0 0 10px rgba(245, 108, 108, 0.8);
-  animation: pulse 0.8s infinite;
 }
 
 .status-stopped {
@@ -1380,16 +1380,15 @@ onUnmounted(() => {
 .quick-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 
 .message-area {
-  margin: 10px 0;
+  margin-bottom: 10px;
 }
 
 .player-count {
   margin-right: 10px;
-  color: #409EFF;
   font-weight: bold;
 }
 
@@ -1398,28 +1397,21 @@ onUnmounted(() => {
   overflow-y: auto;
   border: 1px solid #EBEEF5;
   border-radius: 4px;
-  padding: 8px;
-  background-color: #F8F8F8;
-  font-family: monospace;
+  padding: 10px;
 }
 
 .log-entries {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  font-family: monospace;
+  font-size: 12px;
 }
 
 .log-entry {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-all;
+  padding: 3px 0;
+  border-bottom: 1px dashed #EBEEF5;
 }
 
 .log-timestamp {
-  color: #606266;
+  color: #909399;
   margin-right: 8px;
 }
 
@@ -1428,63 +1420,110 @@ onUnmounted(() => {
   margin-right: 8px;
 }
 
-.log-info {
-  background-color: #F0F9EB;
-  border-left: 3px solid #67C23A;
-}
-
-.log-warn {
-  background-color: #FDF6EC;
-  border-left: 3px solid #E6A23C;
-}
-
 .log-error {
-  background-color: #FEF0F0;
-  border-left: 3px solid #F56C6C;
+  color: #F56C6C;
+}
+
+.log-warning {
+  color: #E6A23C;
+}
+
+.log-info {
+  color: #409EFF;
+}
+
+.log-debug {
+  color: #909399;
 }
 
 .upload-dialog-content {
-  padding: 10px 0;
+  margin-bottom: 20px;
 }
 
 .download-links {
-  background-color: #f5f7fa;
-  padding: 10px 15px;
+  margin: 15px 0;
+  padding: 10px;
+  background-color: #f8f9fa;
   border-radius: 4px;
-  margin-bottom: 15px;
-}
-
-.download-links h4 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  color: #606266;
-}
-
-.download-links p {
-  margin: 5px 0;
-}
-
-.download-links a {
-  color: var(--el-color-primary);
-  text-decoration: none;
-}
-
-.download-links a:hover {
-  text-decoration: underline;
 }
 
 .tshock-uploader {
-  width: 100%;
   margin-top: 20px;
 }
 
-.mt-4 {
-  margin-top: 16px;
+.control-panel .el-row {
+  margin-bottom: 10px;
 }
 
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.7; }
-  100% { opacity: 1; }
+.command-history {
+  border: 1px solid #EBEEF5;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.command-history-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #EBEEF5;
+}
+
+.command-history-content {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.command-history-item {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #EBEEF5;
+}
+
+.command-input {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.command-type {
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.command-text {
+  flex: 1;
+  font-family: monospace;
+}
+
+.command-output {
+  background-color: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* 版本信息样式 */
+.version-info {
+  text-align: center;
+  margin-top: 20px;
+  padding: 10px;
+  color: #909399;
+  font-size: 12px;
+  border-top: 1px solid #EBEEF5;
+}
+
+.version-number {
+  margin-left: 10px;
+  font-weight: bold;
+  color: #409EFF;
 }
 </style> 
