@@ -4,9 +4,11 @@
 # Koi-UI版
 
 # 全局变量
-VERSION="1.0.0"
-GITHUB_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui"
-GITEE_URL="https://gitee.com/cd-writer/terraria-panel/raw/koi-ui"
+VERSION="1.0.1"  # 增加版本号
+GITHUB_REPO="https://github.com/ShourGG/terraria-panel.git"
+GITEE_REPO="https://gitee.com/cd-writer/terraria-panel.git"
+GITHUB_SCRIPT_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui/install.sh"
+GITEE_SCRIPT_URL="https://gitee.com/cd-writer/terraria-panel/raw/koi-ui/install.sh"
 REPO_URL=""
 BASE_DIR="$HOME/terrariaPanel"
 CONFIG_DIR="$BASE_DIR/config"
@@ -23,6 +25,34 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;36m'
 NC='\033[0m' # 恢复默认颜色
 
+# 清屏函数
+clear_screen() {
+    clear
+}
+
+# 显示菜单
+show_menu() {
+    clear_screen
+    echo -e "${BLUE}泰拉瑞亚服务器管理平台(Terraria Management Platform) v${VERSION}${NC}"
+    echo -e "${BLUE}--- https://github.com/ShourGG/terraria-panel ---${NC}"
+    echo -e "${BLUE}————————————————————————————————————————————————————————————${NC}"
+    echo -e "${BLUE}[0]: 下载并启动服务(Download and start the service)${NC}"
+    echo -e "${BLUE}————————————————————————————————————————————————————————————${NC}"
+    echo -e "${BLUE}[1]: 启动服务(Start the service)${NC}"
+    echo -e "${BLUE}[2]: 关闭服务(Stop the service)${NC}"
+    echo -e "${BLUE}[3]: 重启服务(Restart the service)${NC}"
+    echo -e "${BLUE}————————————————————————————————————————————————————————————${NC}"
+    echo -e "${BLUE}[4]: 更新管理平台(Update management platform)${NC}"
+    echo -e "${BLUE}[5]: 强制更新平台(Force update platform)${NC}"
+    echo -e "${BLUE}[6]: 修改面板端口(Change panel port)${NC}"
+    echo -e "${BLUE}[7]: 更新启动脚本(Update startup script)${NC}"
+    echo -e "${BLUE}————————————————————————————————————————————————————————————${NC}"
+    echo -e "${BLUE}[8]: 设置虚拟内存(Setup swap)${NC}"
+    echo -e "${BLUE}[9]: 退出脚本(Exit script)${NC}"
+    echo -e "${BLUE}————————————————————————————————————————————————————————————${NC}"
+    echo -e "${YELLOW}请输入选择(Please enter your selection) [0-9]:${NC}"
+}
+
 # 选择下载源
 select_source() {
     echo -e "${BLUE}请选择下载源:${NC}"
@@ -34,25 +64,25 @@ select_source() {
     
     case $source_option in
         1)
-            REPO_URL=$GITHUB_URL
+            REPO_URL=$GITHUB_REPO
             echo -e "${GREEN}已选择 GitHub 源${NC}"
             ;;
         2)
-            REPO_URL=$GITEE_URL
+            REPO_URL=$GITEE_REPO
             echo -e "${GREEN}已选择 Gitee 源${NC}"
             ;;
         *)
             echo -e "${BLUE}自动选择最快的源...${NC}"
             # 测试GitHub连接速度
             start_time=$(date +%s%N)
-            curl -s --connect-timeout 3 -o /dev/null $GITHUB_URL/README.md
+            git ls-remote --exit-code --heads $GITHUB_REPO koi-ui &>/dev/null
             github_status=$?
             end_time=$(date +%s%N)
             github_time=$((($end_time - $start_time)/1000000))
             
             # 测试Gitee连接速度
             start_time=$(date +%s%N)
-            curl -s --connect-timeout 3 -o /dev/null $GITEE_URL/README.md
+            git ls-remote --exit-code --heads $GITEE_REPO koi-ui &>/dev/null
             gitee_status=$?
             end_time=$(date +%s%N)
             gitee_time=$((($end_time - $start_time)/1000000))
@@ -61,23 +91,23 @@ select_source() {
             if [ $github_status -eq 0 ] && [ $gitee_status -eq 0 ]; then
                 # 两个源都可用，选择更快的
                 if [ $github_time -lt $gitee_time ]; then
-                    REPO_URL=$GITHUB_URL
+                    REPO_URL=$GITHUB_REPO
                     echo -e "${GREEN}已自动选择 GitHub 源 (响应时间: ${github_time}ms)${NC}"
                 else
-                    REPO_URL=$GITEE_URL
+                    REPO_URL=$GITEE_REPO
                     echo -e "${GREEN}已自动选择 Gitee 源 (响应时间: ${gitee_time}ms)${NC}"
                 fi
             elif [ $github_status -eq 0 ]; then
                 # 只有GitHub可用
-                REPO_URL=$GITHUB_URL
+                REPO_URL=$GITHUB_REPO
                 echo -e "${GREEN}已自动选择 GitHub 源${NC}"
             elif [ $gitee_status -eq 0 ]; then
                 # 只有Gitee可用
-                REPO_URL=$GITEE_URL
+                REPO_URL=$GITEE_REPO
                 echo -e "${GREEN}已自动选择 Gitee 源${NC}"
             else
                 # 两个源都不可用，默认使用GitHub
-                REPO_URL=$GITHUB_URL
+                REPO_URL=$GITHUB_REPO
                 echo -e "${YELLOW}两个源都不可用，默认使用 GitHub 源${NC}"
             fi
             ;;
@@ -98,263 +128,75 @@ change_port() {
     if [[ "$NEW_PORT" =~ ^[0-9]+$ ]] && [ "$NEW_PORT" -ge 1 ] && [ "$NEW_PORT" -le 65535 ]; then
         PORT=$NEW_PORT
         echo -e "${GREEN}端口已修改为: ${PORT}${NC}"
+        
+        # 如果配置文件存在，更新端口配置
+        if [ -f "$CONFIG_DIR/config.json" ]; then
+            # 尝试使用jq更新配置
+            if command -v jq &> /dev/null; then
+                jq ".port = $PORT" "$CONFIG_DIR/config.json" > "$CONFIG_DIR/config.json.tmp" && mv "$CONFIG_DIR/config.json.tmp" "$CONFIG_DIR/config.json"
+                echo -e "${GREEN}配置文件已更新${NC}"
+            else
+                echo -e "${YELLOW}未安装jq工具，无法自动更新配置文件${NC}"
+                echo -e "${YELLOW}请手动编辑 $CONFIG_DIR/config.json 文件修改端口${NC}"
+            fi
+        else
+            # 创建配置目录和配置文件
+            mkdir -p "$CONFIG_DIR"
+            echo "{\"port\": $PORT}" > "$CONFIG_DIR/config.json"
+            echo -e "${GREEN}已创建配置文件${NC}"
+        fi
     else
         echo -e "${RED}无效的端口号${NC}"
     fi
 }
 
-# 下载必要文件
-download_files() {
-    echo -e "${BLUE}开始下载必要文件...${NC}"
+# 下载面板文件
+download_panel() {
+    echo -e "${BLUE}开始下载泰拉瑞亚服务器管理面板...${NC}"
     
-    # 创建dist目录
-    mkdir -p "$PANEL_DIR/dist"
-    
-    # 下载server.js
-    echo -e "${BLUE}下载server.js...${NC}"
-    curl -s -L "$REPO_URL/server.js" -o "$PANEL_DIR/server.js" || {
-        echo -e "${RED}下载server.js失败，尝试使用备用源...${NC}"
-        # 尝试使用备用源
-        if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-            curl -s -L "$GITEE_URL/server.js" -o "$PANEL_DIR/server.js"
-        else
-            curl -s -L "$GITHUB_URL/server.js" -o "$PANEL_DIR/server.js"
-        fi
-        
-        # 如果仍然失败，创建基本文件
-        if [ ! -s "$PANEL_DIR/server.js" ]; then
-            echo -e "${RED}使用备用源下载失败，创建基本的server.js${NC}"
-            create_basic_server
-        fi
-    }
-    
-    # 下载package.json
-    echo -e "${BLUE}下载package.json...${NC}"
-    curl -s -L "$REPO_URL/package.json" -o "$PANEL_DIR/package.json" || {
-        echo -e "${RED}下载package.json失败，尝试使用备用源...${NC}"
-        # 尝试使用备用源
-        if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-            curl -s -L "$GITEE_URL/package.json" -o "$PANEL_DIR/package.json"
-        else
-            curl -s -L "$GITHUB_URL/package.json" -o "$PANEL_DIR/package.json"
-        fi
-        
-        # 如果仍然失败，创建基本文件
-        if [ ! -s "$PANEL_DIR/package.json" ]; then
-            echo -e "${RED}使用备用源下载失败，创建基本的package.json${NC}"
-            create_basic_package
-        fi
-    }
-    
-    # 下载前端文件
-    echo -e "${BLUE}下载前端文件...${NC}"
+    # 检查是否安装了git
+    if ! command -v git &> /dev/null; then
+        echo -e "${RED}未安装Git，请先安装Git${NC}"
+        echo -e "${YELLOW}Debian/Ubuntu: apt-get install git${NC}"
+        echo -e "${YELLOW}CentOS/RHEL: yum install git${NC}"
+        return 1
+    fi
     
     # 创建临时目录
     TMP_DIR=$(mktemp -d)
     
-    # 尝试克隆整个仓库来获取所有文件
-    echo -e "${BLUE}尝试克隆仓库获取所有前端文件...${NC}"
-    
-    # 检查是否安装了git
-    if command -v git &> /dev/null; then
-        echo -e "${BLUE}使用git克隆仓库...${NC}"
+    # 克隆仓库
+    echo -e "${BLUE}从${REPO_URL}克隆Koi-UI分支...${NC}"
+    if git clone --depth=1 -b koi-ui "$REPO_URL" "$TMP_DIR/repo"; then
+        echo -e "${GREEN}克隆成功${NC}"
         
-        # 尝试从GitHub克隆
-        if git clone --depth=1 -b koi-ui https://github.com/ShourGG/terraria-panel.git "$TMP_DIR/repo" &> /dev/null; then
-            echo -e "${GREEN}成功从GitHub克隆仓库${NC}"
-        else
-            # 如果GitHub失败，尝试从Gitee克隆
-            echo -e "${YELLOW}从GitHub克隆失败，尝试从Gitee克隆...${NC}"
-            if git clone --depth=1 -b koi-ui https://gitee.com/cd-writer/terraria-panel.git "$TMP_DIR/repo" &> /dev/null; then
-                echo -e "${GREEN}成功从Gitee克隆仓库${NC}"
+        # 检查是否包含koi-ui-master目录
+        if [ -d "$TMP_DIR/repo/koi-ui-master" ]; then
+            echo -e "${BLUE}复制文件到面板目录...${NC}"
+            
+            # 复制所有文件到面板目录
+            cp -r "$TMP_DIR/repo/"* "$PANEL_DIR/"
+            
+            # 确保koi-ui-master目录存在
+            if [ -d "$PANEL_DIR/koi-ui-master" ]; then
+                echo -e "${GREEN}Koi-UI界面文件已复制${NC}"
             else
-                echo -e "${RED}克隆仓库失败，将使用单文件下载方式${NC}"
-                USE_SINGLE_FILE_DOWNLOAD=true
-            fi
-        fi
-        
-        # 如果克隆成功，复制dist目录
-        if [ -d "$TMP_DIR/repo/dist" ] && [ ! "$USE_SINGLE_FILE_DOWNLOAD" = true ]; then
-            echo -e "${BLUE}复制前端文件到面板目录...${NC}"
-            mkdir -p "$PANEL_DIR/dist"
-            cp -r "$TMP_DIR/repo/dist/"* "$PANEL_DIR/dist/"
-            echo -e "${GREEN}前端文件复制完成${NC}"
-        else
-            echo -e "${YELLOW}克隆的仓库中没有dist目录，将使用单文件下载方式${NC}"
-            USE_SINGLE_FILE_DOWNLOAD=true
-        fi
-    else
-        echo -e "${YELLOW}未安装git，将使用单文件下载方式${NC}"
-        USE_SINGLE_FILE_DOWNLOAD=true
-    fi
-    
-    # 如果需要使用单文件下载方式
-    if [ "$USE_SINGLE_FILE_DOWNLOAD" = true ]; then
-        echo -e "${BLUE}使用单文件下载方式...${NC}"
-        
-        # 创建dist目录
-        mkdir -p "$PANEL_DIR/dist"
-        mkdir -p "$PANEL_DIR/dist/assets"
-        
-        # 下载index.html
-        echo -e "${BLUE}下载index.html...${NC}"
-        curl -s -L "$REPO_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html" || {
-            # 尝试使用备用源
-            if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-                curl -s -L "$GITEE_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
-            else
-                curl -s -L "$GITHUB_URL/dist/index.html" -o "$PANEL_DIR/dist/index.html"
+                echo -e "${RED}复制Koi-UI界面文件失败${NC}"
+                return 1
             fi
             
-            if [ ! -s "$PANEL_DIR/dist/index.html" ]; then
-                echo -e "${RED}下载index.html失败，创建基本的前端文件${NC}"
-                create_basic_html
-            fi
-        }
-        
-        # 下载vite.png
-        echo -e "${BLUE}下载vite.png...${NC}"
-        curl -s -L "$REPO_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png" || {
-            # 尝试使用备用源
-            if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-                curl -s -L "$GITEE_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png"
-            else
-                curl -s -L "$GITHUB_URL/dist/vite.png" -o "$PANEL_DIR/dist/vite.png"
-            fi
-        }
-        
-        # 下载assets目录下的常见文件
-        echo -e "${BLUE}下载assets目录文件...${NC}"
-        
-        # 定义要下载的assets文件列表 - 包含常见的文件名
-        ASSETS_FILES=(
-            "403-CAEEPw8e.js"
-            "403-CUQbA87J.png"
-            "403-GIJaS4Sw.css"
-            "404-BZEtK4a9.js"
-            "404-CwMLa_ZI.png"
-            "404-CzTII790.css"
-            "500-BjsfdhNX.css"
-            "500-CM9wJmPF.png"
-            "500-DRb14bnc.js"
-            "KoiCard-B0fBo9JU.js"
-            "KoiFont-QsAh7QwZ.woff2"
-            "KoiLeftChart-qjQYWbBF.js"
-            "KoiRightChart-D6KVV8OX.js"
-        )
-        
-        # 下载每个assets文件
-        for file in "${ASSETS_FILES[@]}"; do
-            echo -e "${BLUE}尝试下载 $file...${NC}"
-            curl -s -L "$REPO_URL/dist/assets/$file" -o "$PANEL_DIR/dist/assets/$file" || {
-                # 尝试使用备用源
-                if [ "$REPO_URL" = "$GITHUB_URL" ]; then
-                    curl -s -L "$GITEE_URL/dist/assets/$file" -o "$PANEL_DIR/dist/assets/$file"
-                else
-                    curl -s -L "$GITHUB_URL/dist/assets/$file" -o "$PANEL_DIR/dist/assets/$file"
-                fi
-            }
-        done
+            # 清理临时目录
+            rm -rf "$TMP_DIR"
+            
+            return 0
+        else
+            echo -e "${RED}仓库中不包含koi-ui-master目录${NC}"
+            return 1
+        fi
+    else
+        echo -e "${RED}克隆仓库失败${NC}"
+        return 1
     fi
-    
-    # 清理临时目录
-    rm -rf "$TMP_DIR"
-    
-    echo -e "${GREEN}文件下载完成${NC}"
-}
-
-# 创建基本的server.js
-create_basic_server() {
-    echo -e "${YELLOW}创建基本的server.js...${NC}"
-    cat > "$PANEL_DIR/server.js" << EOF
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const app = express();
-const port = process.env.PORT || $PORT;
-
-// 静态文件服务
-app.use(express.static(path.join(__dirname, 'dist')));
-app.use(express.json());
-
-// API路由
-app.get('/api/status', (req, res) => {
-  res.json({
-    status: 'running',
-    version: '1.0.0',
-    uptime: Math.floor(process.uptime()),
-    memory: process.memoryUsage().rss / 1024 / 1024
-  });
-});
-
-// 启动服务器
-app.listen(port, () => {
-  console.log(\`泰拉瑞亚服务器管理面板正在运行，端口: \${port}\`);
-});
-EOF
-}
-
-# 创建基本的index.html
-create_basic_html() {
-    echo -e "${YELLOW}创建基本的index.html...${NC}"
-    cat > "$PANEL_DIR/dist/index.html" << EOF
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>泰拉瑞亚服务器管理面板</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f5f5f5; }
-    .container { max-width: 800px; margin: 0 auto; }
-    .card { background: white; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
-    .card-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
-    .btn { display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 10px; }
-    .btn:hover { background-color: #45a049; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>泰拉瑞亚服务器管理面板</h1>
-    <div class="card">
-      <div class="card-title">服务器状态</div>
-      <p>面板已成功启动！</p>
-      <p>基于Koi-UI的泰拉瑞亚服务器管理面板，提供简单易用的Web界面来管理您的泰拉瑞亚服务器。</p>
-    </div>
-    <div class="card">
-      <div class="card-title">快速链接</div>
-      <a href="/" class="btn">管理面板</a>
-      <a href="/system" class="btn">系统监控</a>
-    </div>
-    <div class="card">
-      <div class="card-title">项目信息</div>
-      <p>GitHub: <a href="https://github.com/ShourGG/terraria-panel/tree/koi-ui">https://github.com/ShourGG/terraria-panel/tree/koi-ui</a></p>
-      <p>Gitee: <a href="https://gitee.com/cd-writer/terraria-panel/tree/koi-ui">https://gitee.com/cd-writer/terraria-panel/tree/koi-ui</a></p>
-    </div>
-  </div>
-</body>
-</html>
-EOF
-}
-
-# 创建基本的package.json
-create_basic_package() {
-    echo -e "${YELLOW}创建基本的package.json...${NC}"
-    cat > "$PANEL_DIR/package.json" << EOF
-{
-  "name": "terraria-panel",
-  "version": "1.0.0",
-  "description": "泰拉瑞亚服务器管理面板",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2"
-  }
-}
-EOF
 }
 
 # 安装依赖
@@ -372,7 +214,7 @@ install_dependencies() {
             yum install -y nodejs npm
         else
             echo -e "${RED}无法安装Node.js，请手动安装后重试${NC}"
-            exit 1
+            return 1
         fi
     fi
     
@@ -418,35 +260,24 @@ EOF
     echo -e "${GREEN}启动脚本创建完成${NC}"
 }
 
-# 启动面板
-start_panel() {
-    echo -e "${BLUE}启动泰拉瑞亚管理面板...${NC}"
-    
-    "$BASE_DIR/start.sh"
-    
-    echo -e "${GREEN}面板已启动，请访问: http://localhost:$PORT${NC}"
-    echo -e "${GREEN}如果是远程服务器，请访问: http://服务器IP:$PORT${NC}"
-    echo -e "${YELLOW}日志文件位置: $LOG_FILE${NC}"
-}
-
-# 主函数
-main() {
-    echo -e "${BLUE}=== 泰拉瑞亚服务器管理面板安装脚本 v$VERSION ===${NC}"
-    
-    # 创建目录
-    create_directories
+# 下载并启动服务
+download_and_start() {
+    echo -e "${YELLOW}下载并安装泰拉瑞亚服务器管理面板...${NC}"
     
     # 选择下载源
     select_source
     
+    # 创建必要目录
+    create_directories
+    
     # 询问是否修改端口
-    read -p "是否修改默认端口 $PORT? (y/n): " change_port_answer
-    if [[ "$change_port_answer" == "y" || "$change_port_answer" == "Y" ]]; then
+    read -p "是否修改默认端口(10788)? [y/N]: " change_port_option
+    if [[ "$change_port_option" =~ ^[Yy]$ ]]; then
         change_port
     fi
     
-    # 下载文件
-    download_files
+    # 下载面板文件
+    download_panel
     
     # 安装依赖
     install_dependencies
@@ -454,16 +285,360 @@ main() {
     # 创建启动脚本
     create_start_script
     
-    # 询问是否立即启动
-    read -p "是否立即启动面板? (y/n): " start_now
-    if [[ "$start_now" == "y" || "$start_now" == "Y" ]]; then
-        start_panel
-    else
-        echo -e "${BLUE}安装完成，使用以下命令启动面板:${NC}"
-        echo -e "${GREEN}$BASE_DIR/start.sh${NC}"
+    # 启动服务
+    start_service
+}
+
+# 启动服务
+start_service() {
+    echo -e "${YELLOW}启动泰拉瑞亚服务器管理面板...${NC}"
+    
+    # 检查服务是否已经运行
+    if [ -f "$BASE_DIR/panel.pid" ]; then
+        pid=$(cat "$BASE_DIR/panel.pid")
+        if ps -p $pid > /dev/null; then
+            echo -e "${RED}服务已经在运行中，PID: $pid${NC}"
+            return 1
+        else
+            rm "$BASE_DIR/panel.pid"
+        fi
     fi
     
-    echo -e "${BLUE}=== 安装完成 ===${NC}"
+    # 启动服务
+    cd "$PANEL_DIR"
+    PORT=$PORT node server.js > "$LOG_FILE" 2>&1 &
+    echo $! > "$BASE_DIR/panel.pid"
+    
+    echo -e "${GREEN}服务已启动，PID: $(cat "$BASE_DIR/panel.pid")，端口: $PORT${NC}"
+    echo -e "${GREEN}请访问 http://localhost:$PORT 或 http://服务器IP:$PORT 访问管理面板${NC}"
+}
+
+# 停止服务
+stop_service() {
+    echo -e "${YELLOW}停止泰拉瑞亚服务器管理面板...${NC}"
+    
+    if [ -f "$BASE_DIR/panel.pid" ]; then
+        pid=$(cat "$BASE_DIR/panel.pid")
+        if ps -p $pid > /dev/null; then
+            kill $pid
+            echo -e "${GREEN}服务已停止，PID: $pid${NC}"
+        else
+            echo -e "${RED}服务未运行，但存在PID文件，正在清理...${NC}"
+        fi
+        rm "$BASE_DIR/panel.pid"
+    else
+        echo -e "${RED}找不到PID文件，服务可能未运行${NC}"
+        # 尝试查找并杀死可能的Node.js进程
+        pids=$(ps -ef | grep "node server.js" | grep -v grep | awk '{print $2}')
+        if [ -n "$pids" ]; then
+            echo -e "${YELLOW}找到可能的服务进程，尝试停止...${NC}"
+            for p in $pids; do
+                kill $p
+                echo -e "${GREEN}已停止进程 $p${NC}"
+            done
+        fi
+    fi
+}
+
+# 重启服务
+restart_service() {
+    echo -e "${YELLOW}重启泰拉瑞亚服务器管理面板...${NC}"
+    stop_service
+    sleep 2
+    start_service
+}
+
+# 更新管理平台
+update_platform() {
+    echo -e "${YELLOW}更新泰拉瑞亚服务器管理面板...${NC}"
+    
+    # 选择下载源
+    select_source
+    
+    # 备份当前配置
+    if [ -f "$PANEL_DIR/server.js" ]; then
+        cp "$PANEL_DIR/server.js" "$PANEL_DIR/server.js.bak"
+    fi
+    
+    # 下载最新版本
+    echo -e "${YELLOW}从${REPO_URL}下载最新版本...${NC}"
+    download_panel
+    
+    # 恢复配置
+    if [ -f "$PANEL_DIR/server.js.bak" ]; then
+        cp "$PANEL_DIR/server.js.bak" "$PANEL_DIR/server.js"
+    fi
+    
+    echo -e "${GREEN}更新完成${NC}"
+    
+    # 询问是否重启服务
+    read -p "是否立即重启服务？[y/N]: " restart_option
+    if [[ "$restart_option" =~ ^[Yy]$ ]]; then
+        restart_service
+    fi
+}
+
+# 强制更新平台
+force_update() {
+    echo -e "${YELLOW}强制更新泰拉瑞亚服务器管理面板...${NC}"
+    
+    # 停止服务
+    stop_service
+    
+    # 选择下载源
+    select_source
+    
+    # 备份重要文件
+    mkdir -p "$BASE_DIR/backup"
+    if [ -f "$PANEL_DIR/server.js" ]; then
+        cp "$PANEL_DIR/server.js" "$BASE_DIR/backup/"
+    fi
+    
+    # 清理当前文件
+    rm -rf "$PANEL_DIR"/*
+    
+    # 下载最新版本
+    echo -e "${YELLOW}从${REPO_URL}下载最新版本...${NC}"
+    download_panel
+    
+    # 恢复配置
+    if [ -f "$BASE_DIR/backup/server.js" ]; then
+        cp "$BASE_DIR/backup/server.js" "$PANEL_DIR/"
+    fi
+    
+    echo -e "${GREEN}强制更新完成${NC}"
+    
+    # 询问是否启动服务
+    read -p "是否立即启动服务？[y/N]: " start_option
+    if [[ "$start_option" =~ ^[Yy]$ ]]; then
+        start_service
+    fi
+}
+
+# 更新启动脚本
+update_startup_script() {
+    echo -e "${YELLOW}检查启动脚本更新...${NC}"
+    
+    # 选择下载源
+    echo -e "${BLUE}请选择脚本下载源:${NC}"
+    echo -e "1) GitHub (国际)"
+    echo -e "2) Gitee (中国大陆)"
+    echo -e "3) 自动选择 (推荐)"
+    
+    read -p "请输入选项 [1-3，默认3]: " source_option
+    
+    SCRIPT_URL=""
+    case $source_option in
+        1)
+            SCRIPT_URL=$GITHUB_SCRIPT_URL
+            echo -e "${GREEN}已选择 GitHub 源${NC}"
+            ;;
+        2)
+            SCRIPT_URL=$GITEE_SCRIPT_URL
+            echo -e "${GREEN}已选择 Gitee 源${NC}"
+            ;;
+        *)
+            echo -e "${BLUE}自动选择最快的源...${NC}"
+            # 测试GitHub连接速度
+            start_time=$(date +%s%N)
+            curl -s --connect-timeout 3 -o /dev/null $GITHUB_SCRIPT_URL
+            github_status=$?
+            end_time=$(date +%s%N)
+            github_time=$((($end_time - $start_time)/1000000))
+            
+            # 测试Gitee连接速度
+            start_time=$(date +%s%N)
+            curl -s --connect-timeout 3 -o /dev/null $GITEE_SCRIPT_URL
+            gitee_status=$?
+            end_time=$(date +%s%N)
+            gitee_time=$((($end_time - $start_time)/1000000))
+            
+            # 根据连接状态和速度选择源
+            if [ $github_status -eq 0 ] && [ $gitee_status -eq 0 ]; then
+                # 两个源都可用，选择更快的
+                if [ $github_time -lt $gitee_time ]; then
+                    SCRIPT_URL=$GITHUB_SCRIPT_URL
+                    echo -e "${GREEN}已自动选择 GitHub 源 (响应时间: ${github_time}ms)${NC}"
+                else
+                    SCRIPT_URL=$GITEE_SCRIPT_URL
+                    echo -e "${GREEN}已自动选择 Gitee 源 (响应时间: ${gitee_time}ms)${NC}"
+                fi
+            elif [ $github_status -eq 0 ]; then
+                # 只有GitHub可用
+                SCRIPT_URL=$GITHUB_SCRIPT_URL
+                echo -e "${GREEN}已自动选择 GitHub 源${NC}"
+            elif [ $gitee_status -eq 0 ]; then
+                # 只有Gitee可用
+                SCRIPT_URL=$GITEE_SCRIPT_URL
+                echo -e "${GREEN}已自动选择 Gitee 源${NC}"
+            else
+                # 两个源都不可用，默认使用GitHub
+                SCRIPT_URL=$GITHUB_SCRIPT_URL
+                echo -e "${YELLOW}两个源都不可用，默认使用 GitHub 源${NC}"
+            fi
+            ;;
+    esac
+    
+    # 下载脚本到临时文件
+    echo -e "${BLUE}下载最新脚本...${NC}"
+    TEMP_SCRIPT="/tmp/install.sh.$$"
+    curl -s -L "$SCRIPT_URL" -o "$TEMP_SCRIPT"
+    
+    if [ $? -ne 0 ] || [ ! -s "$TEMP_SCRIPT" ]; then
+        echo -e "${RED}下载脚本失败${NC}"
+        rm -f "$TEMP_SCRIPT"
+        return 1
+    fi
+    
+    # 检查新版本
+    NEW_VERSION=$(grep "^VERSION=" "$TEMP_SCRIPT" | cut -d'"' -f2)
+    if [ -z "$NEW_VERSION" ]; then
+        echo -e "${RED}无法确定新脚本版本${NC}"
+        rm -f "$TEMP_SCRIPT"
+        return 1
+    fi
+    
+    echo -e "${BLUE}当前版本: ${VERSION}${NC}"
+    echo -e "${BLUE}最新版本: ${NEW_VERSION}${NC}"
+    
+    # 比较版本
+    if [ "$VERSION" = "$NEW_VERSION" ]; then
+        echo -e "${GREEN}已经是最新版本${NC}"
+        rm -f "$TEMP_SCRIPT"
+        return 0
+    fi
+    
+    # 询问是否更新
+    read -p "发现新版本，是否更新？[Y/n]: " update_option
+    if [[ ! "$update_option" =~ ^[Nn]$ ]]; then
+        # 备份当前脚本
+        BACKUP_SCRIPT="$BASE_DIR/install.sh.bak"
+        cp "$0" "$BACKUP_SCRIPT"
+        
+        # 替换当前脚本
+        cp "$TEMP_SCRIPT" "$0"
+        chmod +x "$0"
+        
+        echo -e "${GREEN}脚本已更新到版本 ${NEW_VERSION}${NC}"
+        echo -e "${YELLOW}请重新运行脚本以应用更新${NC}"
+        
+        # 清理临时文件
+        rm -f "$TEMP_SCRIPT"
+        
+        # 退出脚本
+        exit 0
+    else
+        echo -e "${YELLOW}取消更新${NC}"
+        rm -f "$TEMP_SCRIPT"
+    fi
+}
+
+# 设置虚拟内存
+setup_swap() {
+    echo -e "${YELLOW}设置虚拟内存...${NC}"
+    
+    # 检查是否已经有swap
+    if free | grep -q "Swap"; then
+        swap_total=$(free | grep "Swap" | awk '{print $2}')
+        if [ "$swap_total" -gt 0 ]; then
+            echo -e "${YELLOW}系统已有$(($swap_total/1024))MB虚拟内存${NC}"
+            read -p "是否重新设置？[y/N]: " reset_swap
+            if [[ ! "$reset_swap" =~ ^[Yy]$ ]]; then
+                return 0
+            fi
+            
+            # 关闭已有的swap
+            echo -e "${YELLOW}关闭已有的虚拟内存...${NC}"
+            swapoff -a
+        fi
+    fi
+    
+    # 询问swap大小
+    read -p "请输入要设置的虚拟内存大小(MB)，建议为物理内存的1-2倍: " swap_size
+    
+    # 验证输入
+    if ! [[ "$swap_size" =~ ^[0-9]+$ ]]; then
+        echo -e "${RED}输入错误，请输入数字${NC}"
+        return 1
+    fi
+    
+    # 创建swap文件
+    echo -e "${YELLOW}创建${swap_size}MB的虚拟内存文件...${NC}"
+    dd if=/dev/zero of=/swapfile bs=1M count=$swap_size
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    
+    # 设置开机自动挂载
+    if ! grep -q "/swapfile" /etc/fstab; then
+        echo "/swapfile swap swap defaults 0 0" >> /etc/fstab
+    fi
+    
+    echo -e "${GREEN}虚拟内存设置完成，大小: ${swap_size}MB${NC}"
+}
+
+# 主函数
+main() {
+    while true; do
+        show_menu
+        read -r choice
+        
+        case $choice in
+            0)
+                download_and_start
+                echo -e "${YELLOW}按Enter键继续...${NC}"
+                read
+                ;;
+            1)
+                start_service
+                echo -e "${YELLOW}按Enter键继续...${NC}"
+                read
+                ;;
+            2)
+                stop_service
+                echo -e "${YELLOW}按Enter键继续...${NC}"
+                read
+                ;;
+            3)
+                restart_service
+                echo -e "${YELLOW}按Enter键继续...${NC}"
+                read
+                ;;
+            4)
+                update_platform
+                echo -e "${YELLOW}按Enter键继续...${NC}"
+                read
+                ;;
+            5)
+                force_update
+                echo -e "${YELLOW}按Enter键继续...${NC}"
+                read
+                ;;
+            6)
+                change_port
+                echo -e "${YELLOW}按Enter键继续...${NC}"
+                read
+                ;;
+            7)
+                update_startup_script
+                echo -e "${YELLOW}按Enter键继续...${NC}"
+                read
+                ;;
+            8)
+                setup_swap
+                echo -e "${YELLOW}按Enter键继续...${NC}"
+                read
+                ;;
+            9)
+                echo -e "${GREEN}感谢使用泰拉瑞亚服务器管理平台，再见！${NC}"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}无效的选择，请重新输入${NC}"
+                sleep 2
+                ;;
+        esac
+    done
 }
 
 # 执行主函数
