@@ -48,17 +48,17 @@ const terrariaDir = path.join(homeDir, 'terrariaPanel', 'terraria');
 const panelDir = path.join(homeDir, 'terrariaPanel', 'panel');
 
 // 静态文件服务 - 使用public目录
-const distPath = path.join(__dirname, 'public');
+const publicPath = path.join(__dirname, 'public');
 
 // 检查public目录是否存在
-if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'))) {
-  console.log('使用本地public目录:', distPath);
-  app.use(express.static(distPath));
+if (fs.existsSync(publicPath) && fs.existsSync(path.join(publicPath, 'index.html'))) {
+  console.log('使用本地public目录:', publicPath);
+  app.use(express.static(publicPath));
   
   // 修改页面标题和首页重定向
   app.get('/', (req, res) => {
     // 读取index.html文件
-    let indexHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf8');
+    let indexHtml = fs.readFileSync(path.join(publicPath, 'index.html'), 'utf8');
     
     // 修改标题为"泰拉瑞亚服务器管理面板"
     indexHtml = indexHtml.replace(/<title>.*?<\/title>/, '<title>泰拉瑞亚服务器管理面板</title>');
@@ -106,15 +106,15 @@ if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html')))
   });
 } else {
   console.log('本地public目录不存在或不完整，尝试使用面板安装目录下的public');
-  const panelDistPath = path.join(panelDir, 'public');
-  if (fs.existsSync(panelDistPath) && fs.existsSync(path.join(panelDistPath, 'index.html'))) {
-    console.log('使用面板安装目录下的public:', panelDistPath);
-    app.use(express.static(panelDistPath));
+  const panelPublicPath = path.join(panelDir, 'public');
+  if (fs.existsSync(panelPublicPath) && fs.existsSync(path.join(panelPublicPath, 'index.html'))) {
+    console.log('使用面板安装目录下的public:', panelPublicPath);
+    app.use(express.static(panelPublicPath));
     
     // 修改页面标题和首页重定向
     app.get('/', (req, res) => {
       // 读取index.html文件
-      let indexHtml = fs.readFileSync(path.join(panelDistPath, 'index.html'), 'utf8');
+      let indexHtml = fs.readFileSync(path.join(panelPublicPath, 'index.html'), 'utf8');
       
       // 修改标题为"泰拉瑞亚服务器管理面板"
       indexHtml = indexHtml.replace(/<title>.*?<\/title>/, '<title>泰拉瑞亚服务器管理面板</title>');
@@ -514,11 +514,14 @@ app.use((req, res) => {
     return res.status(404).json({ error: 'API不存在' });
   }
   
+  // 获取面板目录的路径
+  const panelPublicPath = path.join(panelDir, 'public');
+  
   // 根据使用的前端目录决定返回哪个index.html
-  if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'))) {
-    res.sendFile(path.join(distPath, 'index.html'));
-  } else if (fs.existsSync(panelDistPath) && fs.existsSync(path.join(panelDistPath, 'index.html'))) {
-    res.sendFile(path.join(panelDistPath, 'index.html'));
+  if (fs.existsSync(publicPath) && fs.existsSync(path.join(publicPath, 'index.html'))) {
+    res.sendFile(path.join(publicPath, 'index.html'));
+  } else if (fs.existsSync(panelPublicPath) && fs.existsSync(path.join(panelPublicPath, 'index.html'))) {
+    res.sendFile(path.join(panelPublicPath, 'index.html'));
   } else {
     res.status(404).send('找不到前端文件');
   }
