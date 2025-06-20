@@ -4,7 +4,7 @@
 # Koi-UI版
 
 # 全局变量
-VERSION="1.0.9"  # 增加版本号
+VERSION="1.1.0"  # 增加版本号
 GITHUB_REPO="https://github.com/ShourGG/terraria-panel.git"
 GITEE_REPO="https://gitee.com/cd-writer/terraria-panel.git"
 GITHUB_SCRIPT_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui/install.sh"
@@ -254,12 +254,42 @@ download_panel() {
     if git clone --depth=1 -b koi-ui "$REPO_URL" "$TMP_DIR/repo"; then
         echo -e "${GREEN}克隆成功${NC}"
         
-        # 检查是否包含public目录
-        if [ -d "$TMP_DIR/repo/public" ]; then
-            echo -e "${BLUE}复制文件到面板目录...${NC}"
+        # 创建面板目录（如果不存在）
+        mkdir -p "$PANEL_DIR"
+        mkdir -p "$PANEL_DIR/public"
+        
+        # 检查是否包含koi-ui-master/dist目录
+        if [ -d "$TMP_DIR/repo/koi-ui-master/dist" ]; then
+            echo -e "${BLUE}使用Koi-UI界面...${NC}"
             
-            # 创建面板目录（如果不存在）
-            mkdir -p "$PANEL_DIR"
+            # 复制koi-ui-master/dist目录内容到public目录
+            cp -rf "$TMP_DIR/repo/koi-ui-master/dist/"* "$PANEL_DIR/public/"
+            
+            # 复制其他所需文件到面板目录（除了koi-ui-master目录）
+            for item in "$TMP_DIR/repo"/*; do
+                if [ "$(basename "$item")" != "koi-ui-master" ]; then
+                    cp -rf "$item" "$PANEL_DIR/"
+                fi
+            done
+            
+            # 返回到原始目录
+            cd "$CURRENT_DIR" || echo -e "${YELLOW}警告：无法返回原始目录${NC}"
+            
+            # 确保public目录存在并包含文件
+            if [ -d "$PANEL_DIR/public" ] && [ -f "$PANEL_DIR/public/index.html" ]; then
+                echo -e "${GREEN}Koi-UI界面复制成功${NC}"
+            else
+                echo -e "${RED}Koi-UI界面复制失败${NC}"
+                rm -rf "$TMP_DIR"
+                return 1
+            fi
+            
+            # 清理临时目录
+            rm -rf "$TMP_DIR"
+            
+            return 0
+        elif [ -d "$TMP_DIR/repo/public" ]; then
+            echo -e "${BLUE}使用内置界面...${NC}"
             
             # 复制所有文件到面板目录
             cp -rf "$TMP_DIR/repo/"* "$PANEL_DIR/"
@@ -281,7 +311,7 @@ download_panel() {
             
             return 0
         else
-            echo -e "${RED}仓库中不包含public目录${NC}"
+            echo -e "${RED}仓库中既不包含koi-ui-master/dist目录也不包含public目录${NC}"
             # 返回到原始目录
             cd "$CURRENT_DIR" || echo -e "${YELLOW}警告：无法返回原始目录${NC}"
             rm -rf "$TMP_DIR"
