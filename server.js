@@ -6,6 +6,13 @@ const { exec, spawn } = require('child_process');
 const app = express();
 const port = process.env.PORT || 10788;
 const multer = require('multer');
+
+// 定义版本信息
+const VERSION = {
+  PLATFORM: "1.2.0",  // 平台版本号
+  UI: "1.0.0",        // UI版本号
+  BUILD_DATE: "2024-07-30"  // 构建日期
+};
 const AdmZip = require('adm-zip');
 
 // 创建上传目录
@@ -172,6 +179,16 @@ app.use(express.json());
 if (!fs.existsSync(terrariaDir)) {
   fs.mkdirSync(terrariaDir, { recursive: true });
 }
+
+// 版本API路由
+app.get('/api/version', (req, res) => {
+  res.json({
+    platform: VERSION.PLATFORM,
+    ui: VERSION.UI,
+    buildDate: VERSION.BUILD_DATE,
+    port: port
+  });
+});
 
 // 泰拉瑞亚服务器API路由
 const terrariaRouter = express.Router();

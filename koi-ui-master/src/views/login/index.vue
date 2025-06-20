@@ -1,90 +1,200 @@
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      <h2>泰拉瑞亚服务器管理面板</h2>
-      <form @submit.prevent="handleLogin">
-        <div class="form-group">
-          <label for="username">用户名</label>
-          <input type="text" id="username" v-model="username" required />
+  <el-row class="min-h-screen">
+    <el-col :lg="16" :md="12" :sm="0" :xs="0" class="bg-[--el-color-primary] flex items-center justify-center">
+      <div>
+        <el-image v-if="!isScreen" class="w-400px h-360px mb-50px" :src="bg" />
+        <div class="font-bold text-3xl text-light-50 mb-6px text-center">
+          欢迎登录 {{ settings.loginTitle || "泰拉瑞亚管理平台" }}
         </div>
-        <div class="form-group">
-          <label for="password">密码</label>
-          <input type="password" id="password" v-model="password" required />
-        </div>
-        <button type="submit" class="login-button">登录</button>
-      </form>
-    </div>
-  </div>
+        <div class="text-gray-200 text-lg text-center">轻松管理您的泰拉瑞亚服务器</div>
+      </div>
+      <!-- 备案号-->
+      <div class="beianhao">
+        <div class="text-light-50">泰拉瑞亚管理平台 v{{ VERSION.PLATFORM }} | UI v{{ VERSION.UI }}</div>
+      </div>
+    </el-col>
+    <el-col :lg="8" :md="12" :sm="24" :xs="24" class="dark:bg-#121212 bg-gray-100 flex items-center justify-center flex-col">
+      <div class="flex items-center">
+        <el-image class="rounded-full w-36px h-36px" :src="logo" />
+        <div class="ml-6px font-bold text-xl">{{ settings.loginTitle || "泰拉瑞亚管理平台" }}</div>
+      </div>
+      <div class="flex items-center space-x-3 text-gray-400 mt-16px mb-16px">
+        <span class="h-1px w-16 bg-gray-300 inline-block"></span>
+        <span class="text-center">账号密码登录</span>
+        <span class="h-1px w-16 bg-gray-300 inline-block"></span>
+      </div>
+      <!-- 输入框盒子 -->
+      <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules">
+        <el-form-item prop="userName">
+          <el-input type="text" placeholder="请输入用户名" :suffix-icon="User" v-model="loginForm.loginName" />
+        </el-form-item>
+        <el-form-item prop="password">
+          <el-input type="password" placeholder="请输入密码" show-password :suffix-icon="Lock" v-model="loginForm.password" />
+        </el-form-item>
+        <el-form-item prop="securityCode">
+          <el-input
+            type="text"
+            placeholder="请输入验证码"
+            :suffix-icon="Open"
+            v-model="loginForm.securityCode"
+            @keydown.enter="handleKoiLogin"
+          ></el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-image class="w-100px h-30px" :src="loginForm.captchaPicture" @click="handleCaptcha" />
+          <el-button text size="small" class="ml-6px" @click="handleCaptcha">
+            <div class="text-gray-400 hover:text-#8B5CF6 select-none">看不清，换一张</div>
+          </el-button>
+        </el-form-item>
+        <!-- 登录按钮 -->
+        <el-form-item>
+          <el-button type="primary" v-if="!loading" class="w-245px bg-[--el-color-primary]" round @click="handleKoiLogin"
+            >登录</el-button
+          >
+          <el-button type="primary" v-if="loading" class="w-245px bg-[--el-color-primary]" round :loading="loading"
+            >登录中</el-button
+          >
+        </el-form-item>
+      </el-form>
+      <div class="version-info text-gray-400 mt-4 text-center">
+        版本: v{{ VERSION.PLATFORM }} ({{ VERSION.BUILD_DATE }})
+      </div>
+    </el-col>
+  </el-row>
 </template>
 
-<script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+<script lang="ts" setup>
+import { User, Lock, Open } from "@element-plus/icons-vue";
+// @ts-ignore
+import { ref, reactive, onMounted, onUnmounted } from "vue";
+import { VERSION } from "@/config/version";
 
+import type { FormInstance, FormRules } from "element-plus";
+import { koiMsgError } from "@/utils/koi";
+import { useRouter } from "vue-router";
+// import { koiLogin, getCaptcha } from "@/api/system/login/index.ts";
+import authLogin from "@/assets/json/authLogin.json";
+import useUserStore from "@/stores/modules/user";
+import useKeepAliveStore from "@/stores/modules/keepAlive";
+import { HOME_URL } from "@/config/index";
+import { initDynamicRouter } from "@/routers/modules/dynamicRouter";
+import useTabsStore from "@/stores/modules/tabs";
+import { getAssets } from "@/utils/index";
+import settings from "@/settings";
+/** 适配移动端开始 */
+import { useScreenStore } from "@/hooks/screen/index";
+// 获取当前为[移动端、IPad、PC端]仓库，阔以使用 watchEffect(() => {}) 进行监听。
+const { isScreen } = useScreenStore();
+/** 适配移动端结束 */
+
+const userStore = useUserStore();
+const tabsStore = useTabsStore();
+const keepAliveStore = useKeepAliveStore();
 const router = useRouter();
-const username = ref('');
-const password = ref('');
 
-const handleLogin = () => {
-  // 这里应该有实际的登录逻辑
-  // 临时实现：直接跳转到首页
-  router.push('/');
+/** 用户登录代码 */
+const logo = getAssets("images/logo/logo.webp");
+const bg = getAssets("images/login/bg.png");
+const loginFormRef = ref<FormInstance>();
+const loading = ref(false);
+
+interface ILoginUser {
+  loginName: string;
+  password: string | number;
+  securityCode: string | number;
+  codeKey: string | number;
+  captchaPicture: any;
+}
+
+const loginForm = reactive<ILoginUser>({
+  loginName: "admin",
+  password: "123456",
+  securityCode: "1234",
+  codeKey: "",
+  captchaPicture: ""
+});
+
+const loginRules = reactive<FormRules<ILoginUser>>({
+  loginName: [{ required: true, message: "用户名不能为空", trigger: "blur" }],
+  password: [{ required: true, message: "密码不能为空", trigger: "blur" }],
+  securityCode: [{ required: true, message: "验证码不能为空", trigger: "blur" }]
+});
+
+/** 获取验证码 */
+const handleCaptcha = async () => {
+  // try {
+  //   const res: any = await getCaptcha();
+  //   loginForm.codeKey = res.data.codeKey;
+  //   loginForm.captchaPicture = res.data.captchaPicture;
+  // } catch (error) {
+  //   console.log(error);
+  //   koiMsgError("验证码获取失败🌻");
+  // }
+};
+
+// 进入页面加载管理员信息
+onMounted(() => {
+  // 获取验证码
+  handleCaptcha();
+});
+
+/** 登录 */
+const handleKoiLogin = () => {
+  if (!loginFormRef.value) return;
+  (loginFormRef.value as any).validate(async (valid: any, fields: any) => {
+    // @ts-ignore
+    const loginName = loginForm.loginName;
+    // @ts-ignore
+    const password = loginForm.password;
+    // @ts-ignore
+    const securityCode = loginForm.securityCode;
+    // @ts-ignore
+    const codeKey = loginForm.codeKey;
+    if (valid) {
+      loading.value = true;
+      try {
+        // 1、执行登录接口
+        // const res: any = await koiLogin({ loginName, password, codeKey, securityCode });
+        // userStore.setToken(res.data.tokenValue);
+        userStore.setToken(authLogin.data.tokenValue);
+        // 2、添加动态路由 AND 用户按钮 AND 角色信息 AND 用户个人信息
+        await initDynamicRouter();
+
+        // 3、清空 tabs数据、keepAlive缓存数据
+        tabsStore.setTab([]);
+        keepAliveStore.setKeepAliveName([]);
+
+        // 4、跳转到首页
+        loading.value = false;
+        router.push(HOME_URL);
+      } catch (error) {
+        // 等待1秒关闭loading
+        let loadingTime = 1;
+        setInterval(() => {
+          loadingTime--;
+          if (loadingTime === 0) {
+            loading.value = false;
+          }
+        }, 1000);
+      }
+    } else {
+      console.log("登录校验失败", fields);
+      koiMsgError("校验失败，信息填写有误🌻");
+    }
+  });
 };
 </script>
 
-<style scoped>
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.login-box {
-  width: 400px;
-  padding: 2rem;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 2rem;
-  color: #4caf50;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.5rem;
+<style lang="scss" scoped>
+/** 备案号 */
+.beianhao {
+  position: absolute;
+  bottom: 10px;
+  left: auto;
+  font-size: 12px;
   font-weight: bold;
 }
-
-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
+.version-info {
+  font-size: 12px;
 }
-
-.login-button {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.login-button:hover {
-  background-color: #45a049;
-}
-</style> 
+</style>

@@ -1,21 +1,43 @@
 import { RouteRecordRaw } from "vue-router";
+import { HOME_URL, LOGIN_URL } from "@/config";
 import Layout from "@/layouts/index.vue";
-
-// 设置首页为泰拉瑞亚管理页面
-const HOME_URL = "/terraria/overview";
-const LOGIN_URL = "/login";
 
 /**
  * LayoutRouter (布局路由)
  */
 export const layoutRouter: RouteRecordRaw[] = [
+  // {
+  //   path: "/",
+  //   redirect: HOME_URL
+  // },
+  // {
+  //   path: "/",
+  //   name: "layout",
+  //   component: () => import("@/layouts/index.vue"),
+  //   redirect: HOME_URL,
+  //   children: []
+  // }
   {
     // 登录成功以后展示数据的路由[一级路由，可以将子路由放置Main模块中(核心)]
     path: "/", // 路由访问路径[唯一]
     name: "layout", // 命名路由[唯一]
     component: Layout, // 登录进入这个页面，这个页面是整个布局
-    redirect: HOME_URL, // 重定向到泰拉瑞亚管理页面
-    children: []
+    redirect: HOME_URL, // path路径，<router-link name="/404"> 也是使用path进行跳转
+    children: [
+      {
+        path: HOME_URL, // [唯一]
+        component: () => import("@/views/home/index.vue"),
+        meta: {
+          title: "首页", // 标题
+          icon: "HomeFilled", // 图标
+          isHide: "0", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+          isLink: "", // 是否外链[有值则是外链]
+          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+          isFull: "1", // 是否缓存全屏[0是，1否]
+          isAffix: "0" // 是否缓存固定路由[0是，1否]
+        }
+      }
+    ]
   },
   {
     path: LOGIN_URL,
@@ -31,135 +53,128 @@ export const layoutRouter: RouteRecordRaw[] = [
  * LayoutRouter (布局路由)
  */
 export const staticRouter: RouteRecordRaw[] = [
-  // 泰拉瑞亚服务器管理 - 作为唯一的主模块
+  /** 首页 */
   {
-    path: "/terraria", // 路由访问路径[唯一]
-    name: "terraria", // 命名路由[唯一]
-    component: Layout, // 一级路由，可以将子路由放置Main模块中
+    path: "/home/index", // [唯一]
+    component: () => import("@/views/home/index.vue"),
     meta: {
-      title: "泰拉瑞亚管理", // 标题
-      icon: "Monitor", // 图标
-      isHide: "1", // 显示此页面
+      title: "首页", // 标题
+      icon: "HomeFilled", // 图标 HomeFilled
+      isHide: "0", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
       isLink: "", // 是否外链[有值则是外链]
       isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+      isFull: "1", // 是否缓存全屏[0是，1否]
+      isAffix: "0" // 是否缓存固定路由[0是，1否]
+    }
+  },
+  {
+    path: "/system/static", // 路由访问路径[唯一]
+    name: "staticPage", // 命名路由[唯一]
+    component: Layout, // 一级路由，可以将子路由放置Main模块中
+    meta: {
+      title: "静态路由", // 标题
+      icon: "Tools", // 图标
+      isHide: "0", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+      isLink: "", // 是否外链[有值则是外链]
+      isKeepAlive: "1", // 是否缓存路由数据[0是，1否]
       isFull: "1", // 是否缓存全屏[0是，1否]
       isAffix: "1" // 是否缓存固定路由[0是，1否]
     },
     children: [
+      // 字典详情json
+      // {
+      //   "menuId": 15,
+      //   "menuName": "字典详情",
+      //   "parentId": 1,
+      //   "menuType": "2",
+      //   "path": "/system/dict/data/:dictType",
+      //   "name": "dictDataPage",
+      //   "component": "system/dict/data",
+      //   "icon": "Flag",
+      //   "isHide": "1",
+      //   "isLink": "",
+      //   "isKeepAlive": "0",
+      //   "isFull": "1",
+      //   "isAffix": "1",
+      //   "redirect": ""
+      // },
       {
-        path: "/terraria/overview", // [唯一]
-        name: "terrariaOverview",
-        component: () => import("@/views/terraria/index.vue"),
+        path: "/system/dict/data/:dictType", // 路由访问路径[唯一]
+        name: "dictDataPage", // 命名路由[唯一]
+        component: () => import("@/views/system/dict/data.vue"), // 一级路由，可以将子路由放置Main模块中
         meta: {
-          title: "服务器概览", // 标题
-          icon: "DataLine", // 图标
-          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+          title: "字典详情", // 标题
+          icon: "Flag", // 图标
+          isHide: "0", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
           isLink: "", // 是否外链[有值则是外链]
           isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
           isFull: "1", // 是否缓存全屏[0是，1否]
-          isAffix: "1" // 是否缓存固定路由[0是，1否]
-        }
-      },
-      {
-        path: "/terraria/worlds", // [唯一]
-        name: "terrariaWorlds",
-        component: () => import("@/views/terraria/worlds.vue"),
-        meta: {
-          title: "世界管理", // 标题
-          icon: "Place", // 图标
-          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-          isLink: "", // 是否外链[有值则是外链]
-          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-          isFull: "1", // 是否缓存全屏[0是，1否]
-          isAffix: "1" // 是否缓存固定路由[0是，1否]
-        }
-      },
-      {
-        path: "/terraria/players", // [唯一]
-        name: "terrariaPlayers",
-        component: () => import("@/views/terraria/players.vue"),
-        meta: {
-          title: "玩家管理", // 标题
-          icon: "User", // 图标
-          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-          isLink: "", // 是否外链[有值则是外链]
-          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-          isFull: "1", // 是否缓存全屏[0是，1否]
-          isAffix: "1" // 是否缓存固定路由[0是，1否]
-        }
-      },
-      {
-        path: "/terraria/config", // [唯一]
-        name: "terrariaConfig",
-        component: () => import("@/views/terraria/config.vue"),
-        meta: {
-          title: "服务器配置", // 标题
-          icon: "Setting", // 图标
-          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-          isLink: "", // 是否外链[有值则是外链]
-          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-          isFull: "1", // 是否缓存全屏[0是，1否]
-          isAffix: "1" // 是否缓存固定路由[0是，1否]
-        }
-      },
-      {
-        path: "/terraria/backups", // [唯一]
-        name: "terrariaBackups",
-        component: () => import("@/views/terraria/backups.vue"),
-        meta: {
-          title: "备份管理", // 标题
-          icon: "CopyDocument", // 图标
-          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-          isLink: "", // 是否外链[有值则是外链]
-          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-          isFull: "1", // 是否缓存全屏[0是，1否]
-          isAffix: "1" // 是否缓存固定路由[0是，1否]
-        }
-      },
-      {
-        path: "/terraria/plugins", // [唯一]
-        name: "terrariaPlugins",
-        component: () => import("@/views/terraria/plugins.vue"),
-        meta: {
-          title: "插件管理", // 标题
-          icon: "SetUp", // 图标
-          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-          isLink: "", // 是否外链[有值则是外链]
-          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-          isFull: "1", // 是否缓存全屏[0是，1否]
-          isAffix: "1" // 是否缓存固定路由[0是，1否]
-        }
-      },
-      {
-        path: "/terraria/logs", // [唯一]
-        name: "terrariaLogs",
-        component: () => import("@/views/terraria/logs.vue"),
-        meta: {
-          title: "服务器日志", // 标题
-          icon: "Document", // 图标
-          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-          isLink: "", // 是否外链[有值则是外链]
-          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-          isFull: "1", // 是否缓存全屏[0是，1否]
-          isAffix: "1" // 是否缓存固定路由[0是，1否]
-        }
-      },
-      {
-        path: "/terraria/console", // [唯一]
-        name: "terrariaConsole",
-        component: () => import("@/views/terraria/console.vue"),
-        meta: {
-          title: "服务器控制台", // 标题
-          icon: "Terminal", // 图标
-          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-          isLink: "", // 是否外链[有值则是外链]
-          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-          isFull: "1", // 是否缓存全屏[0是，1否]
-          isAffix: "1" // 是否缓存固定路由[0是，1否]
+          isAffix: "1", // 是否缓存固定路由[0是，1否]
+          activeMenu: "/system/dict/type" // 默认选中哪个路由
         }
       }
     ]
   }
+  /** 系统管理 */
+  // {
+  //   path: "/system", // 路由访问路径[唯一]
+  //   name: "system", // 命名路由[唯一]
+  //   component: Layout, // 一级路由，可以将子路由放置Main模块中
+  //   redirect: "/system/user", // path路径，<router-link name="/404"> 也是使用path进行跳转
+  //   meta: {
+  //     title: "系统管理", // 标题
+  //     icon: "Tools", // 图标
+  //     isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+  //     isLink: "", // 是否外链[有值则是外链]
+  //     isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+  //     isFull: "1", // 是否缓存全屏[0是，1否]
+  //     isAffix: "1" // 是否缓存固定路由[0是，1否]
+  //   },
+  //   children: [
+  //     {
+  //       path: "/system/user", // [唯一]
+  //       name: "userPage",
+  //       component: () => import("@/views/system/user/index.vue"),
+  //       meta: {
+  //         title: "用户管理", // 标题
+  //         icon: "UserFilled", // 图标
+  //         isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+  //         isLink: "", // 是否外链[有值则是外链]
+  //         isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+  //         isFull: "1", // 是否缓存全屏[0是，1否]
+  //         isAffix: "1" // 是否缓存固定路由[0是，1否]
+  //       }
+  //     },
+  //     {
+  //       path: "/system/role", // [唯一]
+  //       name: "rolePage",
+  //       component: () => import("@/views/system/role/index.vue"),
+  //       meta: {
+  //         title: "角色管理", // 标题
+  //         icon: "CameraFilled", // 图标
+  //         isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+  //         isLink: "", // 是否外链[有值则是外链]
+  //         isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+  //         isFull: "1", // 是否缓存全屏[0是，1否]
+  //         isAffix: "1" // 是否缓存固定路由[0是，1否]
+  //       }
+  //     },
+  //     {
+  //       path: "/system/menu", // [唯一]
+  //       name: "menu",
+  //       component: () => import("@/views/system/menu/index.vue"),
+  //       meta: {
+  //         title: "菜单管理", // 标题
+  //         icon: "Menu", // 图标
+  //         isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+  //         isLink: "", // 是否外链[有值则是外链]
+  //         isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+  //         isFull: "1", // 是否缓存全屏[0是，1否]
+  //         isAffix: "1" // 是否缓存固定路由[0是，1否]
+  //       }
+  //     }
+  //   ]
+  // }
 ];
 
 /**

@@ -1,1 +1,0 @@
-import{_ as a,c as s,o as e,a as n}from"./index-CeeT5qMx.js";const o={class:"config-container"},c=a({__name:"config",setup:a=>(a,c)=>(e(),s("div",o,c[0]||(c[0]=[n("h2",null,"服务器配置",-1),n("p",null,"此页面用于配置泰拉瑞亚服务器。",-1)])))},[["__scopeId","data-v-d22e1aeb"]]);export{c as default};

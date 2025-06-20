@@ -4,7 +4,10 @@
 # Koi-UI版
 
 # 全局变量
-VERSION="1.1.0"  # 增加版本号
+VERSION="1.2.0"            # 脚本版本号
+PLATFORM_VERSION="1.2.0"   # 平台版本号 
+UI_VERSION="1.0.0"         # UI版本号
+BUILD_DATE="2024-07-30"    # 构建日期
 GITHUB_REPO="https://github.com/ShourGG/terraria-panel.git"
 GITEE_REPO="https://gitee.com/cd-writer/terraria-panel.git"
 GITHUB_SCRIPT_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui/install.sh"
@@ -33,7 +36,7 @@ clear_screen() {
 # 显示菜单
 show_menu() {
     clear_screen
-    echo -e "${BLUE}泰拉瑞亚服务器管理平台(Terraria Management Platform) v${VERSION}${NC}"
+    echo -e "${BLUE}泰拉瑞亚服务器管理平台(Terraria Management Platform) v${PLATFORM_VERSION}${NC}"
     echo -e "${BLUE}--- https://github.com/ShourGG/terraria-panel ---${NC}"
     echo -e "${BLUE}————————————————————————————————————————————————————————————${NC}"
     echo -e "${BLUE}[0]: 下载并启动服务(Download and start the service)${NC}"
@@ -48,9 +51,10 @@ show_menu() {
     echo -e "${BLUE}[7]: 更新启动脚本(Update startup script)${NC}"
     echo -e "${BLUE}————————————————————————————————————————————————————————————${NC}"
     echo -e "${BLUE}[8]: 设置虚拟内存(Setup swap)${NC}"
-    echo -e "${BLUE}[9]: 退出脚本(Exit script)${NC}"
+    echo -e "${BLUE}[9]: 查看版本和端口信息(View version and port info)${NC}"
+    echo -e "${BLUE}[10]: 退出脚本(Exit script)${NC}"
     echo -e "${BLUE}————————————————————————————————————————————————————————————${NC}"
-    echo -e "${YELLOW}请输入选择(Please enter your selection) [0-9]:${NC}"
+    echo -e "${YELLOW}请输入选择(Please enter your selection) [0-10]:${NC}"
 }
 
 # 选择下载源
@@ -118,6 +122,51 @@ select_source() {
 create_directories() {
     mkdir -p "$CONFIG_DIR" "$LOGS_DIR" "$PANEL_DIR" "$TERRARIA_DIR"
     echo -e "${GREEN}目录创建完成${NC}"
+}
+
+# 查看版本和端口信息
+show_version_and_port() {
+    clear_screen
+    echo -e "${BLUE}————————————————————————————————————————————${NC}"
+    echo -e "${BLUE}      泰拉瑞亚服务器管理平台 - 版本信息      ${NC}"
+    echo -e "${BLUE}————————————————————————————————————————————${NC}"
+    echo -e "${GREEN}脚本版本: ${NC}v${VERSION}"
+    echo -e "${GREEN}平台版本: ${NC}v${PLATFORM_VERSION}"
+    echo -e "${GREEN}UI版本: ${NC}v${UI_VERSION}"
+    echo -e "${GREEN}构建日期: ${NC}${BUILD_DATE}"
+    echo -e "${BLUE}————————————————————————————————————————————${NC}"
+    echo -e "${BLUE}             端口信息                ${NC}"
+    echo -e "${BLUE}————————————————————————————————————————————${NC}"
+    echo -e "${GREEN}面板端口: ${NC}${PORT}"
+    
+    # 检查端口是否在使用
+    if command -v lsof &> /dev/null; then
+        PORT_PID=$(lsof -ti:$PORT 2>/dev/null)
+        if [ -n "$PORT_PID" ]; then
+            echo -e "${GREEN}状态: ${NC}${YELLOW}正在运行 (PID: $PORT_PID)${NC}"
+        else
+            echo -e "${GREEN}状态: ${NC}${RED}未运行${NC}"
+        fi
+    elif command -v netstat &> /dev/null; then
+        if netstat -tuln | grep -q ":$PORT\s"; then
+            PID=$(netstat -tulnp 2>/dev/null | grep ":$PORT\s" | awk '{print $7}' | cut -d'/' -f1)
+            if [ -n "$PID" ]; then
+                echo -e "${GREEN}状态: ${NC}${YELLOW}正在运行 (PID: $PID)${NC}"
+            else
+                echo -e "${GREEN}状态: ${NC}${YELLOW}正在运行${NC}"
+            fi
+        else
+            echo -e "${GREEN}状态: ${NC}${RED}未运行${NC}"
+        fi
+    else
+        echo -e "${GREEN}状态: ${NC}${YELLOW}无法检测${NC}"
+    fi
+    
+    echo -e "${BLUE}————————————————————————————————————————————${NC}"
+    echo -e "${GREEN}访问地址: ${NC}http://$(hostname -I | awk '{print $1}'):${PORT}"
+    echo -e "${BLUE}————————————————————————————————————————————${NC}"
+    
+    read -p "按回车键返回主菜单..." temp
 }
 
 # 修改端口
@@ -834,6 +883,9 @@ main() {
                 read
                 ;;
             9)
+                show_version_and_port
+                ;;
+            10)
                 echo -e "${GREEN}感谢使用泰拉瑞亚服务器管理平台，再见！${NC}"
                 exit 0
                 ;;

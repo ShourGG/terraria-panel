@@ -1,1 +1,0 @@
-import{_ as a,c as s,o,a as e}from"./index-CeeT5qMx.js";const l={class:"logs-container"},n=a({__name:"logs",setup:a=>(a,n)=>(o(),s("div",l,n[0]||(n[0]=[e("h2",null,"服务器日志",-1),e("p",null,"此页面用于查看泰拉瑞亚服务器日志。",-1)])))},[["__scopeId","data-v-87dae112"]]);export{n as default};

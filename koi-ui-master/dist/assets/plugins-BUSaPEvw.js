@@ -1,1 +1,0 @@
-import{_ as s,c as a,o as n,a as l}from"./index-CeeT5qMx.js";const e={class:"plugins-container"},o=s({__name:"plugins",setup:s=>(s,o)=>(n(),a("div",e,o[0]||(o[0]=[l("h2",null,"插件管理",-1),l("p",null,"此页面用于管理泰拉瑞亚服务器插件。",-1)])))},[["__scopeId","data-v-f921b6bd"]]);export{o as default};
