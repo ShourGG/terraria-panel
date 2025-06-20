@@ -1,1 +1,0 @@
-import{_ as s,c as a,o,a as l}from"./index-CeeT5qMx.js";const d={class:"worlds-container"},e=s({__name:"worlds",setup:s=>(s,e)=>(o(),a("div",d,e[0]||(e[0]=[l("h2",null,"世界管理",-1),l("p",null,"此页面用于管理泰拉瑞亚世界。",-1)])))},[["__scopeId","data-v-42f9bc5f"]]);export{e as default};

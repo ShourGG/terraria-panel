@@ -1,1 +1,0 @@
-import{_ as s,c as a,o,a as c}from"./index-CeeT5qMx.js";const e={class:"console-container"},n=s({__name:"console",setup:s=>(s,n)=>(o(),a("div",e,n[0]||(n[0]=[c("h2",null,"服务器控制台",-1),c("p",null,"此页面用于查看和操作泰拉瑞亚服务器控制台。",-1)])))},[["__scopeId","data-v-251c4c2b"]]);export{n as default};
