@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/public/vite.png" />
+    <link rel="icon" type="image/svg+xml" href="/assets/vite-y-q6uXXz.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>%VITE_WEB_TITLE%</title>
+    <title>KOI-ADMIN</title>
     <!-- 加载第一步开始 -->
     <style>
       .preloader {
@@ -32,9 +32,7 @@
         position: absolute;
         border-radius: 2px;
         overflow: hidden;
-        -webkit-perspective: 1000;
         perspective: 1000;
-        -webkit-backface-visibility: hidden;
         backface-visibility: hidden;
       }
 
@@ -43,13 +41,10 @@
         width: 400%;
         height: 100%;
         position: absolute;
-        -webkit-transform: translate3d(0px, 0, 0);
         transform: translate3d(0px, 0, 0);
         /* transition: all 0.8s ease; */
         z-index: 100;
-        -webkit-perspective: 1000;
         perspective: 1000;
-        -webkit-backface-visibility: hidden;
         backface-visibility: hidden;
       }
 
@@ -59,21 +54,17 @@
 
       #top .plane {
         z-index: 2000;
-        -webkit-animation: trans1 1.3s ease-in infinite 0s backwards;
         animation: trans1 1.3s ease-in infinite 0s backwards;
       }
 
       #middle .plane {
-        -webkit-transform: translate3d(0px, 0, 0);
         transform: translate3d(0px, 0, 0);
         background: #fff;
-        -webkit-animation: trans2 1.3s linear infinite 0.3s backwards;
         animation: trans2 1.3s linear infinite 0.3s backwards;
       }
 
       #bottom .plane {
         z-index: 2000;
-        -webkit-animation: trans3 1.3s ease-out infinite 0.7s backwards;
         animation: trans3 1.3s ease-out infinite 0.7s backwards;
       }
 
@@ -81,7 +72,6 @@
         width: 53px;
         height: 20px;
         left: 20px;
-        -webkit-transform: skew(-15deg, 0);
         transform: skew(-15deg, 0);
         z-index: 100;
       }
@@ -91,7 +81,6 @@
         height: 20px;
         left: 20px;
         top: 15px;
-        -webkit-transform: skew(-15deg, 40deg);
         transform: skew(-15deg, 40deg);
       }
 
@@ -99,7 +88,6 @@
         width: 53px;
         height: 20px;
         top: 30px;
-        -webkit-transform: skew(-15deg, 0);
         transform: skew(-15deg, 0);
       }
 
@@ -118,73 +106,36 @@
         width: 200px;
       }
 
-      @-webkit-keyframes trans1 {
-        from {
-          -webkit-transform: translate3d(53px, 0, 0);
-          transform: translate3d(53px, 0, 0);
-        }
-        to {
-          -webkit-transform: translate3d(-250px, 0, 0);
-          transform: translate3d(-250px, 0, 0);
-        }
-      }
-
       @keyframes trans1 {
         from {
-          -webkit-transform: translate3d(53px, 0, 0);
           transform: translate3d(53px, 0, 0);
         }
         to {
-          -webkit-transform: translate3d(-250px, 0, 0);
           transform: translate3d(-250px, 0, 0);
-        }
-      }
-
-      @-webkit-keyframes trans2 {
-        from {
-          -webkit-transform: translate3d(-160px, 0, 0);
-          transform: translate3d(-160px, 0, 0);
-        }
-        to {
-          -webkit-transform: translate3d(53px, 0, 0);
-          transform: translate3d(53px, 0, 0);
         }
       }
 
       @keyframes trans2 {
         from {
-          -webkit-transform: translate3d(-160px, 0, 0);
           transform: translate3d(-160px, 0, 0);
         }
         to {
-          -webkit-transform: translate3d(53px, 0, 0);
           transform: translate3d(53px, 0, 0);
-        }
-      }
-
-      @-webkit-keyframes trans3 {
-        from {
-          -webkit-transform: translate3d(53px, 0, 0);
-          transform: translate3d(53px, 0, 0);
-        }
-        to {
-          -webkit-transform: translate3d(-220px, 0, 0);
-          transform: translate3d(-220px, 0, 0);
         }
       }
 
       @keyframes trans3 {
         from {
-          -webkit-transform: translate3d(53px, 0, 0);
           transform: translate3d(53px, 0, 0);
         }
         to {
-          -webkit-transform: translate3d(-220px, 0, 0);
           transform: translate3d(-220px, 0, 0);
         }
       }
     </style>
     <!-- 加载第一步结束 -->
+    <script type="module" crossorigin src="/assets/index-DWWhf6no.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BDsd4i9N.css">
   </head>
   <body>
     <div id="app">
@@ -205,6 +156,5 @@
       </div>
       <!-- 第二步结束 -->
     </div>
-    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
