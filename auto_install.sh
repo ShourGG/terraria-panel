@@ -14,8 +14,8 @@ echo -e "${BLUE}=== 泰拉瑞亚服务器管理面板 - 自动安装程序 ===${
 echo -e "${BLUE}正在检测最佳下载源...${NC}"
 
 # 定义下载源
-GITHUB_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui"
-GITEE_URL="https://gitee.com/cd-writer/terraria-panel/raw/koi-ui"
+GITHUB_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/main"
+GITEE_URL="https://gitee.com/cd-writer/terraria-panel/raw/main"
 
 # 测试GitHub连接速度
 start_time=$(date +%s)

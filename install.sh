@@ -10,8 +10,8 @@ UI_VERSION="1.0.0"         # UI版本号
 BUILD_DATE="2024-07-30"    # 构建日期
 GITHUB_REPO="https://github.com/ShourGG/terraria-panel.git"
 GITEE_REPO="https://gitee.com/cd-writer/terraria-panel.git"
-GITHUB_SCRIPT_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui/install.sh"
-GITEE_SCRIPT_URL="https://gitee.com/cd-writer/terraria-panel/raw/koi-ui/install.sh"
+GITHUB_SCRIPT_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/main/install.sh"
+GITEE_SCRIPT_URL="https://gitee.com/cd-writer/terraria-panel/raw/main/install.sh"
 REPO_URL=""
 BASE_DIR="$HOME/terrariaPanel"
 CONFIG_DIR="$BASE_DIR/config"
@@ -79,14 +79,14 @@ select_source() {
             echo -e "${BLUE}自动选择最快的源...${NC}"
             # 测试GitHub连接速度
             start_time=$(date +%s%N)
-            git ls-remote --exit-code --heads $GITHUB_REPO koi-ui &>/dev/null
+            git ls-remote --exit-code --heads $GITHUB_REPO main &>/dev/null
             github_status=$?
             end_time=$(date +%s%N)
             github_time=$((($end_time - $start_time)/1000000))
             
             # 测试Gitee连接速度
             start_time=$(date +%s%N)
-            git ls-remote --exit-code --heads $GITEE_REPO koi-ui &>/dev/null
+            git ls-remote --exit-code --heads $GITEE_REPO main &>/dev/null
             gitee_status=$?
             end_time=$(date +%s%N)
             gitee_time=$((($end_time - $start_time)/1000000))
@@ -299,8 +299,8 @@ download_panel() {
     cd "$TMP_DIR" || { echo -e "${RED}无法切换到临时目录${NC}"; return 1; }
     
     # 克隆仓库
-    echo -e "${BLUE}从${REPO_URL}克隆Koi-UI分支...${NC}"
-    if git clone --depth=1 -b koi-ui "$REPO_URL" "$TMP_DIR/repo"; then
+    echo -e "${BLUE}从${REPO_URL}克隆main分支...${NC}"
+    if git clone --depth=1 -b main "$REPO_URL" "$TMP_DIR/repo"; then
         echo -e "${GREEN}克隆成功${NC}"
         
         # 创建面板目录（如果不存在）
