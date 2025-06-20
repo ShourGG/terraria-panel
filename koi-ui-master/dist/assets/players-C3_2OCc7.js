@@ -1,0 +1,1 @@
+import{_ as a,c as s,o as e,a as l}from"./index-CeeT5qMx.js";const n={class:"players-container"},o=a({__name:"players",setup:a=>(a,o)=>(e(),s("div",n,o[0]||(o[0]=[l("h2",null,"玩家管理",-1),l("p",null,"此页面用于管理泰拉瑞亚玩家。",-1)])))},[["__scopeId","data-v-c38af84f"]]);export{o as default};

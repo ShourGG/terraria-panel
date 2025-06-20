@@ -1,30 +1,21 @@
 <template>
-  <div class="terraria-plugins-container">
-    <el-card class="box-card">
-      <template #header>
-        <div class="card-header">
-          <span>插件管理</span>
-        </div>
-      </template>
-      <div class="card-content">
-        <!-- 内容将在后续开发中添加 -->
-        <el-empty description="该功能正在开发中" />
-      </div>
-    </el-card>
+  <div class="plugins-container">
+    <h2>插件管理</h2>
+    <p>此页面用于管理泰拉瑞亚服务器插件。</p>
   </div>
 </template>
 
-<script setup lang="ts">
-// 代码将在后续开发中添加
+<script setup>
+// 插件管理页面
 </script>
 
 <style scoped>
-.terraria-plugins-container {
+.plugins-container {
   padding: 20px;
 }
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+
+h2 {
+  margin-bottom: 20px;
+  color: #4caf50;
 }
 </style> 

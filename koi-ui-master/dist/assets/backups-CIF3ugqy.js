@@ -1,0 +1,1 @@
+import{_ as a,c as s,o as c,a as e}from"./index-CeeT5qMx.js";const n={class:"backups-container"},o=a({__name:"backups",setup:a=>(a,o)=>(c(),s("div",n,o[0]||(o[0]=[e("h2",null,"备份管理",-1),e("p",null,"此页面用于管理泰拉瑞亚服务器备份。",-1)])))},[["__scopeId","data-v-f7809317"]]);export{o as default};

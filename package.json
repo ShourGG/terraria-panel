@@ -1,22 +1,30 @@
 {
-  "name": "terraria-panel",
+  "name": "koi-ui-master",
   "version": "1.0.0",
-  "description": "泰拉瑞亚服务器管理面板",
-  "main": "server.js",
+  "private": true,
   "scripts": {
-    "start": "node server.js",
-    "build": "mkdir -p dist",
-    "postinstall": "npm run build"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "adm-zip": "^0.5.16",
-    "multer": "^1.4.5-lts.1"
+    "axios": "^1.10.0",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "echarts": "^5.6.0",
+    "element-plus": "^2.10.2",
+    "express": "^5.1.0",
+    "fs-extra": "^11.3.0",
+    "pinia": "^2.3.1",
+    "pinia-plugin-persistedstate": "^3.2.3",
+    "vue": "^3.5.16",
+    "vue-router": "^4.5.1"
   },
-  "engines": {
-    "node": ">=14.0.0"
-  },
-  "author": "ShourGG",
-  "license": "MIT"
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "sass": "^1.89.2",
+    "terser": "^5.43.1",
+    "vite": "^5.4.19"
+  }
 }
- 

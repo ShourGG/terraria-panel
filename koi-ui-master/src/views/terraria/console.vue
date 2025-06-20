@@ -1,30 +1,21 @@
 <template>
-  <div class="terraria-console-container">
-    <el-card class="box-card">
-      <template #header>
-        <div class="card-header">
-          <span>服务器控制台</span>
-        </div>
-      </template>
-      <div class="card-content">
-        <!-- 内容将在后续开发中添加 -->
-        <el-empty description="该功能正在开发中" />
-      </div>
-    </el-card>
+  <div class="console-container">
+    <h2>服务器控制台</h2>
+    <p>此页面用于查看和操作泰拉瑞亚服务器控制台。</p>
   </div>
 </template>
 
-<script setup lang="ts">
-// 代码将在后续开发中添加
+<script setup>
+// 服务器控制台页面
 </script>
 
 <style scoped>
-.terraria-console-container {
+.console-container {
   padding: 20px;
 }
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+
+h2 {
+  margin-bottom: 20px;
+  color: #4caf50;
 }
 </style> 
