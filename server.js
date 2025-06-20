@@ -3,9 +3,11 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { exec, spawn } = require('child_process');
-const app = express();
-const port = process.env.PORT || 10788;
+const cors = require('cors');
 const multer = require('multer');
+
+const app = express();
+const PORT = process.env.PORT || 10788;
 
 // 定义版本信息
 const VERSION = {
@@ -15,33 +17,65 @@ const VERSION = {
 };
 const AdmZip = require('adm-zip');
 
-// 创建上传目录
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// 配置中间件
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 静态文件目录
+const publicPath = process.env.PUBLIC_PATH || path.join(__dirname, 'public');
+console.log(`使用本地public目录: ${publicPath}`);
+app.use(express.static(publicPath));
+
+// 文件上传配置
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads'));
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
+
+// 确保上传目录存在
+if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
+  fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
 }
 
-// 配置Multer用于文件上传
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function(req, file, cb) {
-    cb(null, `tshock-${Date.now()}-${file.originalname}`);
-  }
-});
+// 泰拉瑞亚服务器状态
+let terrariaProcess = null;
+let terrariaStatus = {
+  status: 'stopped',
+  players: 0,
+  uptime: '00:00:00',
+  startTime: null,
+  type: 'vanilla', // vanilla, tmod, tshock
+  currentWorld: '',
+  logs: []
+};
 
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 限制为100MB
-  fileFilter: function(req, file, cb) {
-    // 只允许上传zip文件
-    if (file.mimetype !== 'application/zip' && !file.originalname.endsWith('.zip')) {
-      return cb(new Error('只允许上传ZIP文件!'));
-    }
-    cb(null, true);
+// 泰拉瑞亚服务器路径配置
+const TERRARIA_BASE_PATH = path.join(__dirname, 'terraria');
+const PATHS = {
+  vanilla: {
+    server: path.join(TERRARIA_BASE_PATH, 'server'),
+    worlds: path.join(TERRARIA_BASE_PATH, 'Worlds'),
+    version: path.join(TERRARIA_BASE_PATH, 'version.txt')
+  },
+  tmod: {
+    server: path.join(TERRARIA_BASE_PATH, 'TMLserver'),
+    worlds: path.join(TERRARIA_BASE_PATH, 'WorldsTML'),
+    version: path.join(TERRARIA_BASE_PATH, 'TMLversion.txt'),
+    mods: path.join(TERRARIA_BASE_PATH, 'Mods')
+  },
+  tshock: {
+    server: path.join(TERRARIA_BASE_PATH, 'TSserver'),
+    worlds: path.join(TERRARIA_BASE_PATH, 'WorldsTS'),
+    version: path.join(TERRARIA_BASE_PATH, 'TSversion.txt'),
+    plugins: path.join(TERRARIA_BASE_PATH, 'TSserver', 'ServerPlugins')
   }
-});
+};
 
 // 日志中间件
 app.use((req, res, next) => {
@@ -53,9 +87,6 @@ app.use((req, res, next) => {
 const homeDir = os.homedir();
 const terrariaDir = path.join(homeDir, 'terrariaPanel', 'terraria');
 const panelDir = path.join(homeDir, 'terrariaPanel', 'panel');
-
-// 静态文件服务 - 使用public目录
-const publicPath = path.join(__dirname, 'public');
 
 // 检查public目录是否存在
 if (fs.existsSync(publicPath) && fs.existsSync(path.join(publicPath, 'index.html'))) {
@@ -172,21 +203,13 @@ if (fs.existsSync(publicPath) && fs.existsSync(path.join(publicPath, 'index.html
   }
 }
 
-// API中间件
-app.use(express.json());
-
-// 确保目录存在
-if (!fs.existsSync(terrariaDir)) {
-  fs.mkdirSync(terrariaDir, { recursive: true });
-}
-
 // 版本API路由
 app.get('/api/version', (req, res) => {
   res.json({
     platform: VERSION.PLATFORM,
     ui: VERSION.UI,
     buildDate: VERSION.BUILD_DATE,
-    port: port
+    port: PORT
   });
 });
 
@@ -255,19 +278,6 @@ mono --server --gc=sgen -O=all TerrariaServer.exe -configpath ./config -worldpat
 });
 
 // 服务器状态变量
-let terrariaProcess = null;
-let serverStatus = {
-  status: 'stopped',
-  version: 'v1.4.4.9',
-  worldName: '',
-  players: [],
-  maxPlayers: 8,
-  uptime: 0,
-  port: 7777,
-  difficulty: 'normal',
-  memoryUsage: 0,
-  cpuUsage: 0
-};
 let startTime = 0;
 let serverLogs = [];
 
@@ -296,9 +306,9 @@ terrariaRouter.post('/start', (req, res) => {
     });
     
     // 更新状态
-    serverStatus.status = 'starting';
-    serverStatus.port = port;
-    serverStatus.maxPlayers = maxPlayers;
+    terrariaStatus.status = 'starting';
+    terrariaStatus.port = port;
+    terrariaStatus.maxPlayers = maxPlayers;
     startTime = Date.now();
     
     // 处理输出
@@ -313,21 +323,21 @@ terrariaRouter.post('/start', (req, res) => {
       
       // 检测服务器启动完成
       if (logLine.includes('Server started')) {
-        serverStatus.status = 'running';
+        terrariaStatus.status = 'running';
       }
       
       // 检测玩家加入
       if (logLine.match(/(.+) has joined/)) {
         const playerName = logLine.match(/(.+) has joined/)[1];
-        if (!serverStatus.players.includes(playerName)) {
-          serverStatus.players.push(playerName);
+        if (!terrariaStatus.players.includes(playerName)) {
+          terrariaStatus.players.push(playerName);
         }
       }
       
       // 检测玩家离开
       if (logLine.match(/(.+) has left/)) {
         const playerName = logLine.match(/(.+) has left/)[1];
-        serverStatus.players = serverStatus.players.filter(p => p !== playerName);
+        terrariaStatus.players = terrariaStatus.players.filter(p => p !== playerName);
       }
     });
     
@@ -338,9 +348,9 @@ terrariaRouter.post('/start', (req, res) => {
     terrariaProcess.on('close', (code) => {
       serverLogs.push({ time: new Date().toISOString(), message: `服务器已关闭，退出代码: ${code}` });
       terrariaProcess = null;
-      serverStatus.status = 'stopped';
-      serverStatus.players = [];
-      serverStatus.uptime = 0;
+      terrariaStatus.status = 'stopped';
+      terrariaStatus.players = [];
+      terrariaStatus.uptime = '00:00:00';
     });
     
     res.json({ success: true, message: '服务器正在启动' });
@@ -368,8 +378,8 @@ terrariaRouter.post('/stop', (req, res) => {
       if (terrariaProcess) {
         terrariaProcess.kill('SIGTERM');
         terrariaProcess = null;
-        serverStatus.status = 'stopped';
-        serverStatus.players = [];
+        terrariaStatus.status = 'stopped';
+        terrariaStatus.players = [];
       }
     }, 5000);
     
@@ -386,20 +396,21 @@ terrariaRouter.post('/stop', (req, res) => {
 // 获取服务器状态
 terrariaRouter.get('/status', (req, res) => {
   // 更新运行时间
-  if (serverStatus.status === 'running' && startTime > 0) {
-    serverStatus.uptime = Math.floor((Date.now() - startTime) / 1000);
+  if (terrariaStatus.status === 'running' && startTime > 0) {
+    const uptime = Math.floor((Date.now() - startTime) / 1000);
+    terrariaStatus.uptime = formatUptime(uptime);
   }
   
   // 模拟资源使用情况
-  if (serverStatus.status === 'running') {
-    serverStatus.cpuUsage = Math.random() * 10 + 5; // 5-15%
-    serverStatus.memoryUsage = Math.random() * 200 + 300; // 300-500MB
+  if (terrariaStatus.status === 'running') {
+    terrariaStatus.cpuUsage = Math.random() * 10 + 5; // 5-15%
+    terrariaStatus.memoryUsage = Math.random() * 200 + 300; // 300-500MB
   } else {
-    serverStatus.cpuUsage = 0;
-    serverStatus.memoryUsage = 0;
+    terrariaStatus.cpuUsage = 0;
+    terrariaStatus.memoryUsage = 0;
   }
   
-  res.json(serverStatus);
+  res.json(terrariaStatus);
 });
 
 // 获取服务器日志
@@ -705,7 +716,413 @@ app.use((req, res) => {
   }
 });
 
+// 确保泰拉瑞亚目录存在
+async function ensureDirectoriesExist() {
+  try {
+    // 创建基本目录结构
+    await fs.promises.mkdir(TERRARIA_BASE_PATH, { recursive: true });
+    
+    // 创建服务器类型目录
+    for (const type in PATHS) {
+      await fs.promises.mkdir(PATHS[type].server, { recursive: true });
+      await fs.promises.mkdir(PATHS[type].worlds, { recursive: true });
+      
+      // 创建版本文件（如果不存在）
+      try {
+        await fs.promises.access(PATHS[type].version);
+      } catch (error) {
+        // 设置默认版本
+        let defaultVersion = '';
+        switch (type) {
+          case 'vanilla':
+            defaultVersion = '1.4.4.9';
+            break;
+          case 'tmod':
+            defaultVersion = '2023.11';
+            break;
+          case 'tshock':
+            defaultVersion = '5.2.0';
+            break;
+        }
+        await fs.promises.writeFile(PATHS[type].version, defaultVersion);
+      }
+    }
+
+    // 创建特殊目录
+    await fs.promises.mkdir(PATHS.tmod.mods, { recursive: true });
+    await fs.promises.mkdir(PATHS.tshock.plugins, { recursive: true });
+    
+    // 创建空的banlist.txt（如果不存在）
+    const banlistPath = path.join(TERRARIA_BASE_PATH, 'banlist.txt');
+    try {
+      await fs.promises.access(banlistPath);
+    } catch (error) {
+      await fs.promises.writeFile(banlistPath, '');
+    }
+    
+    console.log('泰拉瑞亚服务器目录结构已创建');
+  } catch (error) {
+    console.error('创建目录结构失败:', error);
+  }
+}
+
+// 启动泰拉瑞亚服务器
+async function startTerrariaServer(type = 'vanilla', worldName = 'world') {
+  if (terrariaProcess) {
+    return { success: false, message: '服务器已在运行中' };
+  }
+
+  try {
+    // 确保目录存在
+    await ensureDirectoriesExist();
+    
+    // 获取服务器可执行文件路径
+    const serverPath = PATHS[type].server;
+    const worldsPath = PATHS[type].worlds;
+    
+    // 构建启动命令
+    let command;
+    let args = [];
+    const worldFilePath = path.join(worldsPath, `${worldName}.wld`);
+
+    switch (type) {
+      case 'vanilla':
+        command = path.join(serverPath, 'TerrariaServer');
+        args = ['-world', worldFilePath, '-autocreate', '2'];
+        break;
+      case 'tmod':
+        command = path.join(serverPath, 'tModLoaderServer');
+        args = ['-world', worldFilePath, '-autocreate', '2'];
+        break;
+      case 'tshock':
+        command = path.join(serverPath, 'TerrariaServer.exe');
+        args = ['-world', worldFilePath, '-autocreate', '2'];
+        break;
+      default:
+        return { success: false, message: '未知的服务器类型' };
+    }
+
+    // 启动服务器进程
+    terrariaProcess = spawn(command, args);
+    terrariaStatus.status = 'running';
+    terrariaStatus.startTime = Date.now();
+    terrariaStatus.type = type;
+    terrariaStatus.currentWorld = worldName;
+    terrariaStatus.logs = [];
+
+    // 处理服务器输出
+    terrariaProcess.stdout.on('data', (data) => {
+      const log = data.toString().trim();
+      terrariaStatus.logs.push({ time: new Date().toISOString(), message: log });
+      
+      // 如果日志太多，保留最近的1000条
+      if (terrariaStatus.logs.length > 1000) {
+        terrariaStatus.logs.shift();
+      }
+      
+      // 检查在线玩家数
+      if (log.includes('player(s) online')) {
+        const match = log.match(/(\d+) player\(s\) online/);
+        if (match && match[1]) {
+          terrariaStatus.players = parseInt(match[1]);
+        }
+      }
+      
+      console.log(`[Terraria] ${log}`);
+    });
+
+    // 处理错误
+    terrariaProcess.stderr.on('data', (data) => {
+      const log = data.toString().trim();
+      terrariaStatus.logs.push({ time: new Date().toISOString(), message: log, type: 'error' });
+      console.error(`[Terraria Error] ${log}`);
+    });
+
+    // 处理进程关闭
+    terrariaProcess.on('close', (code) => {
+      console.log(`[Terraria] 服务器已关闭，退出码：${code}`);
+      terrariaProcess = null;
+      terrariaStatus.status = 'stopped';
+      terrariaStatus.players = 0;
+      terrariaStatus.uptime = '00:00:00';
+    });
+
+    // 开始定期更新运行时间
+    startUptimeCounter();
+
+    return { success: true, message: '服务器启动成功' };
+  } catch (error) {
+    console.error('启动服务器失败:', error);
+    return { success: false, message: `启动服务器失败: ${error.message}` };
+  }
+}
+
+// 停止泰拉瑞亚服务器
+function stopTerrariaServer() {
+  if (!terrariaProcess) {
+    return { success: false, message: '服务器未在运行' };
+  }
+
+  try {
+    // 发送保存命令
+    terrariaProcess.stdin.write('save\n');
+    
+    // 给点时间保存
+    setTimeout(() => {
+      // 发送退出命令
+      terrariaProcess.stdin.write('exit\n');
+      
+      // 如果是模组服务器可能需要特殊命令
+      if (terrariaStatus.type === 'tmod') {
+        terrariaProcess.stdin.write('退出\n');
+      }
+      
+      // 给服务器一点时间来优雅退出
+      setTimeout(() => {
+        // 如果进程还在运行，强制终止
+        if (terrariaProcess) {
+          terrariaProcess.kill('SIGTERM');
+          terrariaProcess = null;
+          terrariaStatus.status = 'stopped';
+          terrariaStatus.players = 0;
+          terrariaStatus.uptime = '00:00:00';
+        }
+      }, 5000);
+    }, 2000);
+
+    return { success: true, message: '服务器正在停止' };
+  } catch (error) {
+    console.error('停止服务器失败:', error);
+    return { success: false, message: `停止服务器失败: ${error.message}` };
+  }
+}
+
+// 定期更新运行时间
+function startUptimeCounter() {
+  const uptimeInterval = setInterval(() => {
+    if (terrariaProcess && terrariaStatus.startTime) {
+      const uptime = Date.now() - terrariaStatus.startTime;
+      const hours = Math.floor(uptime / 3600000);
+      const minutes = Math.floor((uptime % 3600000) / 60000);
+      const seconds = Math.floor((uptime % 60000) / 1000);
+      
+      terrariaStatus.uptime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      clearInterval(uptimeInterval);
+    }
+  }, 1000);
+}
+
+// 格式化运行时间
+function formatUptime(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// 获取世界列表
+async function getWorldsList(type = 'all') {
+  try {
+    const worlds = [];
+    
+    // 根据类型获取世界
+    const typesToSearch = type === 'all' ? ['vanilla', 'tmod', 'tshock'] : [type];
+    
+    for (const serverType of typesToSearch) {
+      const worldsPath = PATHS[serverType].worlds;
+      
+      try {
+        // 读取世界目录
+        const files = await fs.promises.readdir(worldsPath);
+        
+        // 筛选出.wld文件
+        const worldFiles = files.filter(file => file.endsWith('.wld'));
+        
+        // 获取每个世界的信息
+        for (const worldFile of worldFiles) {
+          const filePath = path.join(worldsPath, worldFile);
+          const stats = await fs.promises.stat(filePath);
+          
+          worlds.push({
+            name: path.basename(worldFile, '.wld'),
+            type: serverType,
+            size: formatFileSize(stats.size),
+            lastModified: stats.mtime.toISOString(),
+            path: filePath
+          });
+        }
+      } catch (error) {
+        console.error(`读取${serverType}世界目录失败:`, error);
+      }
+    }
+    
+    return worlds;
+  } catch (error) {
+    console.error('获取世界列表失败:', error);
+    return [];
+  }
+}
+
+// 获取模组列表
+async function getModsList() {
+  try {
+    const modsPath = PATHS.tmod.mods;
+    const files = await fs.promises.readdir(modsPath);
+    
+    // 筛选出.tmod文件
+    const modFiles = files.filter(file => file.endsWith('.tmod'));
+    
+    // 获取每个模组的信息
+    const mods = [];
+    for (const modFile of modFiles) {
+      const filePath = path.join(modsPath, modFile);
+      const stats = await fs.promises.stat(filePath);
+      
+      // 目前我们无法从.tmod文件中提取更多信息，所以只提供基本信息
+      mods.push({
+        name: path.basename(modFile, '.tmod'),
+        version: 'Unknown', // 无法从文件名确定版本
+        author: 'Unknown',  // 无法从文件名确定作者
+        enabled: true,      // 默认启用
+        size: formatFileSize(stats.size),
+        lastModified: stats.mtime.toISOString(),
+        path: filePath
+      });
+    }
+    
+    return mods;
+  } catch (error) {
+    console.error('获取模组列表失败:', error);
+    return [];
+  }
+}
+
+// 工具函数：格式化文件大小
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  
+  return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// API路由：泰拉瑞亚服务器管理
+app.get('/api/terraria/status', (req, res) => {
+  res.json(terrariaStatus);
+});
+
+app.post('/api/terraria/start', async (req, res) => {
+  const type = req.body.type || 'vanilla';
+  const worldName = req.body.worldName || 'world';
+  
+  const result = await startTerrariaServer(type, worldName);
+  res.json(result);
+});
+
+app.post('/api/terraria/stop', (req, res) => {
+  const result = stopTerrariaServer();
+  res.json(result);
+});
+
+app.post('/api/terraria/restart', async (req, res) => {
+  const type = terrariaStatus.type || 'vanilla';
+  const worldName = terrariaStatus.currentWorld || 'world';
+  
+  // 先停止
+  stopTerrariaServer();
+  
+  // 等待服务器完全停止
+  setTimeout(async () => {
+    // 然后重新启动
+    const result = await startTerrariaServer(type, worldName);
+    res.json(result);
+  }, 8000);
+});
+
+app.post('/api/terraria/sendCommand', (req, res) => {
+  if (!terrariaProcess) {
+    return res.status(400).json({ success: false, message: '服务器未在运行' });
+  }
+  
+  const command = req.body.command;
+  if (!command) {
+    return res.status(400).json({ success: false, message: '命令不能为空' });
+  }
+  
+  try {
+    terrariaProcess.stdin.write(`${command}\n`);
+    res.json({ success: true, message: '命令已发送' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: `发送命令失败: ${error.message}` });
+  }
+});
+
+app.get('/api/terraria/worlds', async (req, res) => {
+  const type = req.query.type || 'all';
+  const worlds = await getWorldsList(type);
+  res.json(worlds);
+});
+
+app.get('/api/terraria/mods', async (req, res) => {
+  const mods = await getModsList();
+  res.json(mods);
+});
+
+app.delete('/api/terraria/worlds/:name', async (req, res) => {
+  const worldName = req.params.name;
+  const type = req.query.type || 'vanilla';
+  
+  if (!worldName) {
+    return res.status(400).json({ success: false, message: '世界名称不能为空' });
+  }
+  
+  try {
+    const worldPath = path.join(PATHS[type].worlds, `${worldName}.wld`);
+    await fs.promises.unlink(worldPath);
+    
+    // 同时删除.twld文件（如果存在）
+    try {
+      await fs.promises.unlink(path.join(PATHS[type].worlds, `${worldName}.twld`));
+    } catch (error) {
+      // 如果.twld文件不存在，忽略错误
+    }
+    
+    // 同时删除.bak文件（如果存在）
+    try {
+      await fs.promises.unlink(path.join(PATHS[type].worlds, `${worldName}.wld.bak`));
+    } catch (error) {
+      // 如果.bak文件不存在，忽略错误
+    }
+    
+    res.json({ success: true, message: `世界 ${worldName} 已删除` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: `删除世界失败: ${error.message}` });
+  }
+});
+
+app.delete('/api/terraria/mods/:name', async (req, res) => {
+  const modName = req.params.name;
+  
+  if (!modName) {
+    return res.status(400).json({ success: false, message: '模组名称不能为空' });
+  }
+  
+  try {
+    const modPath = path.join(PATHS.tmod.mods, `${modName}.tmod`);
+    await fs.promises.unlink(modPath);
+    res.json({ success: true, message: `模组 ${modName} 已删除` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: `删除模组失败: ${error.message}` });
+  }
+});
+
+// 确保目录结构存在
+ensureDirectoriesExist().catch(console.error);
+
 // 启动服务器
-app.listen(port, () => {
-  console.log(`泰拉瑞亚服务器管理面板正在运行，端口: ${port}`);
+app.listen(PORT, () => {
+  console.log(`泰拉瑞亚服务器管理面板正在运行，端口: ${PORT}`);
 });

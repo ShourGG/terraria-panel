@@ -144,32 +144,36 @@ const updateChart = () => {
         return `${name}: ${value.toFixed(1)}%`;
       }
     },
+    grid: {
+      left: '0',
+      right: '0',
+      bottom: '0',
+      top: '0',
+      containLabel: true
+    },
     series: [
       {
         name: 'CPU使用率',
         type: 'gauge',
-        center: ['25%', '50%'],
-        radius: '75%',
-        startAngle: 225,
-        endAngle: -45,
+        center: ['20%', '50%'],
+        radius: '80%',
         min: 0,
         max: 100,
+        startAngle: 200,
+        endAngle: -20,
+        splitNumber: 10,
+        itemStyle: {
+          color: '#58D9F9'
+        },
         progress: {
-          show: true
+          show: true,
+          width: 20
         },
-        detail: {
-          fontSize: 20,
-          offsetCenter: [0, '30%'],
-          valueAnimation: true,
-          formatter: function(value: number) {
-            return value.toFixed(1) + '%';
-          },
-          color: 'auto'
+        pointer: {
+          show: true,
+          length: '60%',
+          width: 6
         },
-        data: [{
-          value: cpu.usage || 0,
-          name: 'CPU'
-        }],
         axisLine: {
           lineStyle: {
             width: 20,
@@ -180,134 +184,152 @@ const updateChart = () => {
             ]
           }
         },
-        pointer: {
-          icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
-          length: '12%',
-          width: 10,
-          offsetCenter: [0, '-60%'],
-          itemStyle: {
-            color: 'auto'
-          }
-        },
         axisTick: {
-          length: 3,
+          distance: -40,
+          length: 8,
           lineStyle: {
-            color: 'auto',
-            width: 1
+            color: '#fff',
+            width: 2
           }
         },
         splitLine: {
-          length: 5,
+          distance: -38,
+          length: 12,
           lineStyle: {
-            color: 'auto',
+            color: '#fff',
             width: 2
           }
         },
         axisLabel: {
+          distance: -15,
           color: '#999',
-          fontSize: 10,
-          distance: -20
+          fontSize: 12
+        },
+        anchor: {
+          show: false
         },
         title: {
-          offsetCenter: [0, '-20%'],
-          color: '#999',
-          fontSize: 14
-        }
+          show: true,
+          offsetCenter: [0, '70%'],
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: '#333',
+          fontFamily: 'Arial'
+        },
+        detail: {
+          valueAnimation: true,
+          fontSize: 30,
+          offsetCenter: [0, '30%'],
+          formatter: function(value: number) {
+            return value.toFixed(1) + '%';
+          },
+          color: 'inherit'
+        },
+        data: [{
+          value: cpu.usage || 0,
+          name: 'CPU'
+        }]
       },
       {
         name: '内存使用率',
         type: 'gauge',
         center: ['50%', '50%'],
-        radius: '75%',
-        startAngle: 225,
-        endAngle: -45,
+        radius: '80%',
         min: 0,
         max: 100,
+        startAngle: 200,
+        endAngle: -20,
+        splitNumber: 10,
+        itemStyle: {
+          color: '#58D9F9'
+        },
         progress: {
-          show: true
+          show: true,
+          width: 20
+        },
+        pointer: {
+          show: true,
+          length: '60%',
+          width: 6
+        },
+        axisLine: {
+          lineStyle: {
+            width: 20,
+            color: [
+              [0.3, '#67C23A'],
+              [0.7, '#409EFF'],
+              [1, '#F56C6C']
+            ]
+          }
+        },
+        axisTick: {
+          distance: -40,
+          length: 8,
+          lineStyle: {
+            color: '#fff',
+            width: 2
+          }
+        },
+        splitLine: {
+          distance: -38,
+          length: 12,
+          lineStyle: {
+            color: '#fff',
+            width: 2
+          }
+        },
+        axisLabel: {
+          distance: -15,
+          color: '#999',
+          fontSize: 12
+        },
+        anchor: {
+          show: false
+        },
+        title: {
+          show: true,
+          offsetCenter: [0, '70%'],
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: '#333',
+          fontFamily: 'Arial'
         },
         detail: {
-          fontSize: 20,
-          offsetCenter: [0, '30%'],
           valueAnimation: true,
+          fontSize: 30,
+          offsetCenter: [0, '30%'],
           formatter: function(value: number) {
             return value.toFixed(1) + '%';
           },
-          color: 'auto'
+          color: 'inherit'
         },
         data: [{
           value: memory.usagePercent || 0,
           name: '内存'
-        }],
-        axisLine: {
-          lineStyle: {
-            width: 20,
-            color: [
-              [0.3, '#67C23A'],
-              [0.7, '#409EFF'],
-              [1, '#F56C6C']
-            ]
-          }
-        },
-        pointer: {
-          icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
-          length: '12%',
-          width: 10,
-          offsetCenter: [0, '-60%'],
-          itemStyle: {
-            color: 'auto'
-          }
-        },
-        axisTick: {
-          length: 3,
-          lineStyle: {
-            color: 'auto',
-            width: 1
-          }
-        },
-        splitLine: {
-          length: 5,
-          lineStyle: {
-            color: 'auto',
-            width: 2
-          }
-        },
-        axisLabel: {
-          color: '#999',
-          fontSize: 10,
-          distance: -20
-        },
-        title: {
-          offsetCenter: [0, '-20%'],
-          color: '#999',
-          fontSize: 14
-        }
+        }]
       },
       {
         name: '磁盘使用率',
         type: 'gauge',
-        center: ['75%', '50%'],
-        radius: '75%',
-        startAngle: 225,
-        endAngle: -45,
+        center: ['80%', '50%'],
+        radius: '80%',
         min: 0,
         max: 100,
+        startAngle: 200,
+        endAngle: -20,
+        splitNumber: 10,
+        itemStyle: {
+          color: '#58D9F9'
+        },
         progress: {
-          show: true
+          show: true,
+          width: 20
         },
-        detail: {
-          fontSize: 20,
-          offsetCenter: [0, '30%'],
-          valueAnimation: true,
-          formatter: function(value: number) {
-            return value.toFixed(1) + '%';
-          },
-          color: 'auto'
+        pointer: {
+          show: true,
+          length: '60%',
+          width: 6
         },
-        data: [{
-          value: disk.usagePercent || 0,
-          name: '磁盘'
-        }],
         axisLine: {
           lineStyle: {
             width: 20,
@@ -318,39 +340,51 @@ const updateChart = () => {
             ]
           }
         },
-        pointer: {
-          icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
-          length: '12%',
-          width: 10,
-          offsetCenter: [0, '-60%'],
-          itemStyle: {
-            color: 'auto'
-          }
-        },
         axisTick: {
-          length: 3,
+          distance: -40,
+          length: 8,
           lineStyle: {
-            color: 'auto',
-            width: 1
+            color: '#fff',
+            width: 2
           }
         },
         splitLine: {
-          length: 5,
+          distance: -38,
+          length: 12,
           lineStyle: {
-            color: 'auto',
+            color: '#fff',
             width: 2
           }
         },
         axisLabel: {
+          distance: -15,
           color: '#999',
-          fontSize: 10,
-          distance: -20
+          fontSize: 12
+        },
+        anchor: {
+          show: false
         },
         title: {
-          offsetCenter: [0, '-20%'],
-          color: '#999',
-          fontSize: 14
-        }
+          show: true,
+          offsetCenter: [0, '70%'],
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: '#333',
+          fontFamily: 'Arial'
+        },
+        detail: {
+          valueAnimation: true,
+          fontSize: 30,
+          offsetCenter: [0, '30%'],
+          formatter: function(value: number) {
+            return value.toFixed(1) + '%';
+          },
+          color: 'inherit'
+        },
+        data: [{
+          value: disk.usagePercent || 0,
+          name: '磁盘'
+        }]
       }
     ]
   };
@@ -375,5 +409,7 @@ const screenAdapter = () => {
 <style lang="scss" scoped>
 .chart-container {
   padding: 20px;
+  height: 350px;
+  overflow: hidden;
 }
 </style>

@@ -120,8 +120,32 @@ select_source() {
 
 # 创建必要目录
 create_directories() {
-    mkdir -p "$CONFIG_DIR" "$LOGS_DIR" "$PANEL_DIR" "$TERRARIA_DIR"
-    echo -e "${GREEN}目录创建完成${NC}"
+    mkdir -p "$CONFIG_DIR" "$LOGS_DIR" "$PANEL_DIR" 
+    
+    # 创建泰拉瑞亚服务器相关目录
+    mkdir -p "$TERRARIA_DIR/Mods" "$TERRARIA_DIR/server" "$TERRARIA_DIR/TMLserver" "$TERRARIA_DIR/TSserver" 
+    mkdir -p "$TERRARIA_DIR/Worlds" "$TERRARIA_DIR/WorldsTML" "$TERRARIA_DIR/WorldsTS"
+    
+    # 创建所需文件
+    touch "$TERRARIA_DIR/banlist.txt"
+    echo "1.4.4.9" > "$TERRARIA_DIR/version.txt"
+    echo "2023.11" > "$TERRARIA_DIR/TMLversion.txt"
+    echo "5.2.0" > "$TERRARIA_DIR/TSversion.txt"
+    
+    echo -e "${GREEN}目录和文件创建完成${NC}"
+    echo -e "${BLUE}已创建以下文件夹结构:${NC}"
+    echo -e "${YELLOW}$TERRARIA_DIR/${NC}"
+    echo -e "${YELLOW}├── Mods/${NC}"
+    echo -e "${YELLOW}├── server/${NC}"
+    echo -e "${YELLOW}├── TMLserver/${NC}"
+    echo -e "${YELLOW}├── TSserver/${NC}"
+    echo -e "${YELLOW}├── Worlds/${NC}"
+    echo -e "${YELLOW}├── WorldsTML/${NC}"
+    echo -e "${YELLOW}├── WorldsTS/${NC}"
+    echo -e "${YELLOW}├── banlist.txt${NC}"
+    echo -e "${YELLOW}├── version.txt${NC}"
+    echo -e "${YELLOW}├── TMLversion.txt${NC}"
+    echo -e "${YELLOW}└── TSversion.txt${NC}"
 }
 
 # 查看版本和端口信息
