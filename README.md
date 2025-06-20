@@ -15,24 +15,33 @@
 
 ## 安装方法
 
-### 方法一：一键安装脚本（5秒超时自动切换）
+### 方法一：自动安装脚本（推荐）
 
 ```bash
-# 自动选择最快的源下载安装脚本（5秒超时自动切换）
-curl -L --connect-timeout 5 "https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui/install.sh" -o install.sh || curl -L --connect-timeout 5 "https://gitee.com/cd-writer/terraria-panel/raw/koi-ui/install.sh" -o install.sh
+# 下载自动安装脚本，会自动选择最快的源
+curl -L --connect-timeout 5 "https://raw.githubusercontent.com/ShourGG/terraria-panel/main/auto_install.sh" -o auto_install.sh || curl -L --connect-timeout 5 "https://gitee.com/cd-writer/terraria-panel/raw/main/auto_install.sh" -o auto_install.sh
+chmod +x auto_install.sh
+./auto_install.sh
+```
+
+### 方法二：标准安装脚本
+
+```bash
+# 自动选择最快的源下载安装脚本
+curl -L --connect-timeout 5 "https://raw.githubusercontent.com/ShourGG/terraria-panel/main/install.sh" -o install.sh || curl -L --connect-timeout 5 "https://gitee.com/cd-writer/terraria-panel/raw/main/install.sh" -o install.sh
 chmod +x install.sh
 ./install.sh
 ```
 
-### 方法二：手动安装
+### 方法三：手动安装
 
 1. 克隆仓库
 
 ```bash
 # GitHub源
-git clone -b koi-ui https://github.com/ShourGG/terraria-panel.git
+git clone -b main https://github.com/ShourGG/terraria-panel.git
 # 或使用Gitee源（国内推荐）
-git clone -b koi-ui https://gitee.com/cd-writer/terraria-panel.git
+git clone -b main https://gitee.com/cd-writer/terraria-panel.git
 cd terraria-panel
 ```
 
