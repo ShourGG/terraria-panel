@@ -473,46 +473,207 @@ linuxRouter.get('/system/info', (req, res) => {
 
 // 系统资源API
 linuxRouter.get('/system/resources', (req, res) => {
-  const cpuUsage = Math.random() * 100;
+  let promises = [];
   
-  res.json({
-    cpu: {
-      usage: cpuUsage,
-      temp: 45 + Math.floor(Math.random() * 15)
-    },
-    memory: {
-      total: os.totalmem(),
-      used: os.totalmem() - os.freemem(),
-      free: os.freemem(),
-      buffers: Math.floor(os.freemem() * 0.2),
-      cached: Math.floor(os.freemem() * 0.3),
-      usagePercent: ((os.totalmem() - os.freemem()) / os.totalmem()) * 100
-    },
-    swap: {
-      total: 2 * 1024 * 1024 * 1024,
-      used: Math.floor(Math.random() * 1024 * 1024 * 1024),
-      free: 1024 * 1024 * 1024,
-      usagePercent: Math.random() * 40
-    },
-    disk: {
-      total: 100 * 1024 * 1024 * 1024,
-      used: 60 * 1024 * 1024 * 1024,
-      free: 40 * 1024 * 1024 * 1024,
-      usagePercent: 60
-    },
-    network: {
-      interfaces: [
-        {
-          name: "eth0",
-          ip: "192.168.1.100",
-          mac: "00:11:22:33:44:55",
-          rxBytes: 1024 * 1024 * 10,
-          txBytes: 1024 * 1024 * 5,
-          rxPackets: 8000,
-          txPackets: 5000
+  // CPU使用率计算
+  const cpuPromise = new Promise((resolve) => {
+    // 采样两次CPU信息来计算使用率
+    const startMeasure = os.cpus();
+    
+    setTimeout(() => {
+      const endMeasure = os.cpus();
+      let idleDiff = 0;
+      let totalDiff = 0;
+      
+      for (let i = 0; i < startMeasure.length; i++) {
+        // 计算每个核心的空闲时间差值
+        const startIdle = startMeasure[i].times.idle;
+        const endIdle = endMeasure[i].times.idle;
+        const idleDiffCore = endIdle - startIdle;
+        
+        // 计算每个核心的总时间差值
+        const startTotal = Object.values(startMeasure[i].times).reduce((a, b) => a + b);
+        const endTotal = Object.values(endMeasure[i].times).reduce((a, b) => a + b);
+        const totalDiffCore = endTotal - startTotal;
+        
+        idleDiff += idleDiffCore;
+        totalDiff += totalDiffCore;
+      }
+      
+      // 计算CPU使用率
+      const cpuUsage = 100 - Math.floor((idleDiff / totalDiff) * 100);
+      resolve(cpuUsage);
+    }, 100); // 100毫秒的采样间隔
+  });
+  
+  promises.push(cpuPromise);
+  
+  // 磁盘使用信息
+  const diskPromise = new Promise((resolve) => {
+    if (process.platform === 'win32') {
+      // Windows系统
+      exec('wmic logicaldisk get size,freespace,caption', (error, stdout) => {
+        if (error) {
+          resolve({
+            total: 100 * 1024 * 1024 * 1024,
+            used: 60 * 1024 * 1024 * 1024,
+            free: 40 * 1024 * 1024 * 1024,
+            usagePercent: 60
+          });
+          return;
         }
-      ]
+        
+        const lines = stdout.trim().split('\n').slice(1);
+        let total = 0;
+        let free = 0;
+        
+        lines.forEach(line => {
+          const parts = line.trim().split(/\s+/);
+          if (parts.length >= 3) {
+            const size = parseInt(parts[1]);
+            const freeSpace = parseInt(parts[0]);
+            if (!isNaN(size) && !isNaN(freeSpace)) {
+              total += size;
+              free += freeSpace;
+            }
+          }
+        });
+        
+        const used = total - free;
+        const usagePercent = total > 0 ? Math.floor((used / total) * 100) : 0;
+        
+        resolve({
+          total,
+          used,
+          free,
+          usagePercent
+        });
+      });
+    } else {
+      // Linux/Unix系统
+      exec('df -k / | tail -1', (error, stdout) => {
+        if (error) {
+          resolve({
+            total: 100 * 1024 * 1024 * 1024,
+            used: 60 * 1024 * 1024 * 1024,
+            free: 40 * 1024 * 1024 * 1024,
+            usagePercent: 60
+          });
+          return;
+        }
+        
+        const parts = stdout.trim().split(/\s+/);
+        const total = parseInt(parts[1]) * 1024;
+        const used = parseInt(parts[2]) * 1024;
+        const free = parseInt(parts[3]) * 1024;
+        const usagePercent = Math.floor((used / total) * 100);
+        
+        resolve({
+          total,
+          used,
+          free,
+          usagePercent
+        });
+      });
     }
+  });
+  
+  promises.push(diskPromise);
+  
+  // 获取网络信息
+  const networkPromise = new Promise((resolve) => {
+    const interfaces = os.networkInterfaces();
+    const networkData = {
+      interfaces: []
+    };
+    
+    for (const [name, netInterface] of Object.entries(interfaces)) {
+      // 只获取IPv4地址
+      const ipv4 = netInterface.find(i => i.family === 'IPv4' || i.family === 4);
+      if (ipv4) {
+        networkData.interfaces.push({
+          name,
+          ip: ipv4.address,
+          mac: ipv4.mac,
+          // 无法直接获取网络流量，这些值需要持续监控才准确
+          rxBytes: 0,
+          txBytes: 0,
+          rxPackets: 0,
+          txPackets: 0
+        });
+      }
+    }
+    
+    resolve(networkData);
+  });
+  
+  promises.push(networkPromise);
+  
+  // 等待所有异步操作完成
+  Promise.all(promises).then(([cpuUsage, diskInfo, networkInfo]) => {
+    // 内存信息直接从os模块获取
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const usedMemory = totalMemory - freeMemory;
+    const memoryUsagePercent = Math.floor((usedMemory / totalMemory) * 100);
+    
+    // 返回所有系统资源信息
+    res.json({
+      cpu: {
+        usage: cpuUsage,
+        cores: os.cpus().length,
+        model: os.cpus()[0].model
+      },
+      memory: {
+        total: totalMemory,
+        used: usedMemory,
+        free: freeMemory,
+        buffers: Math.floor(freeMemory * 0.2), // 仍然是估算值
+        cached: Math.floor(freeMemory * 0.3), // 仍然是估算值
+        usagePercent: memoryUsagePercent
+      },
+      swap: {
+        total: 2 * 1024 * 1024 * 1024, // 仍使用模拟值
+        used: 1 * 1024 * 1024 * 1024,  // 仍使用模拟值
+        free: 1 * 1024 * 1024 * 1024,  // 仍使用模拟值
+        usagePercent: 50 // 仍使用模拟值
+      },
+      disk: diskInfo,
+      network: networkInfo
+    });
+  }).catch(error => {
+    console.error("获取系统资源信息出错:", error);
+    // 出错时返回默认值
+    res.json({
+      cpu: {
+        usage: 10,
+        cores: os.cpus().length,
+        model: "未知"
+      },
+      memory: {
+        total: os.totalmem(),
+        used: os.totalmem() - os.freemem(),
+        free: os.freemem(),
+        buffers: Math.floor(os.freemem() * 0.2),
+        cached: Math.floor(os.freemem() * 0.3),
+        usagePercent: ((os.totalmem() - os.freemem()) / os.totalmem()) * 100
+      },
+      swap: {
+        total: 2 * 1024 * 1024 * 1024,
+        used: 1 * 1024 * 1024 * 1024,
+        free: 1 * 1024 * 1024 * 1024,
+        usagePercent: 50
+      },
+      disk: {
+        total: 100 * 1024 * 1024 * 1024,
+        used: 60 * 1024 * 1024 * 1024,
+        free: 40 * 1024 * 1024 * 1024,
+        usagePercent: 60
+      },
+      network: {
+        interfaces: []
+      }
+    });
   });
 });
 
