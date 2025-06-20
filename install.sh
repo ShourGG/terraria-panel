@@ -4,7 +4,7 @@
 # Koi-UI版
 
 # 全局变量
-VERSION="1.0.7"  # 增加版本号
+VERSION="1.0.8"  # 增加版本号
 GITHUB_REPO="https://github.com/ShourGG/terraria-panel.git"
 GITEE_REPO="https://gitee.com/cd-writer/terraria-panel.git"
 GITHUB_SCRIPT_URL="https://raw.githubusercontent.com/ShourGG/terraria-panel/koi-ui/install.sh"
@@ -244,6 +244,10 @@ download_panel() {
     
     # 创建临时目录
     TMP_DIR=$(mktemp -d)
+    CURRENT_DIR=$(pwd)
+    
+    # 切换到临时目录
+    cd "$TMP_DIR" || { echo -e "${RED}无法切换到临时目录${NC}"; return 1; }
     
     # 克隆仓库
     echo -e "${BLUE}从${REPO_URL}克隆Koi-UI分支...${NC}"
@@ -254,15 +258,22 @@ download_panel() {
         if [ -d "$TMP_DIR/repo/public" ]; then
             echo -e "${BLUE}复制文件到面板目录...${NC}"
             
+            # 创建面板目录（如果不存在）
+            mkdir -p "$PANEL_DIR"
+            
             # 复制所有文件到面板目录
             cp -rf "$TMP_DIR/repo/"* "$PANEL_DIR/"
+            
+            # 返回到原始目录
+            cd "$CURRENT_DIR" || echo -e "${YELLOW}警告：无法返回原始目录${NC}"
             
             # 确保public目录存在
             if [ -d "$PANEL_DIR/public" ]; then
                 echo -e "${GREEN}public目录复制成功${NC}"
             else
                 echo -e "${RED}public目录复制失败${NC}"
-                exit 1
+                rm -rf "$TMP_DIR"
+                return 1
             fi
             
             # 清理临时目录
@@ -271,10 +282,16 @@ download_panel() {
             return 0
         else
             echo -e "${RED}仓库中不包含public目录${NC}"
+            # 返回到原始目录
+            cd "$CURRENT_DIR" || echo -e "${YELLOW}警告：无法返回原始目录${NC}"
+            rm -rf "$TMP_DIR"
             return 1
         fi
     else
         echo -e "${RED}克隆仓库失败${NC}"
+        # 返回到原始目录
+        cd "$CURRENT_DIR" || echo -e "${YELLOW}警告：无法返回原始目录${NC}"
+        rm -rf "$TMP_DIR"
         return 1
     fi
 }
@@ -298,11 +315,38 @@ install_dependencies() {
         fi
     fi
     
+    # 检查面板目录是否存在
+    if [ ! -d "$PANEL_DIR" ]; then
+        echo -e "${RED}面板目录不存在: $PANEL_DIR${NC}"
+        return 1
+    fi
+    
+    # 检查package.json是否存在
+    if [ ! -f "$PANEL_DIR/package.json" ]; then
+        echo -e "${RED}找不到package.json文件: $PANEL_DIR/package.json${NC}"
+        return 1
+    fi
+    
+    # 保存当前目录
+    CURRENT_DIR=$(pwd)
+    
+    # 切换到面板目录
+    cd "$PANEL_DIR" || { echo -e "${RED}无法切换到面板目录${NC}"; return 1; }
+    
     # 安装依赖
-    cd "$PANEL_DIR"
     npm install --production
+    INSTALL_STATUS=$?
+    
+    # 返回到原始目录
+    cd "$CURRENT_DIR" || echo -e "${YELLOW}警告：无法返回原始目录${NC}"
+    
+    if [ $INSTALL_STATUS -ne 0 ]; then
+        echo -e "${RED}依赖安装失败${NC}"
+        return 1
+    fi
     
     echo -e "${GREEN}依赖安装完成${NC}"
+    return 0
 }
 
 # 创建启动脚本
@@ -384,12 +428,27 @@ start_service() {
         fi
     fi
     
-    # 启动服务
-    cd "$PANEL_DIR"
-    PORT=$PORT node server.js > "$LOG_FILE" 2>&1 &
-    echo $! > "$BASE_DIR/panel.pid"
+    # 检查面板目录是否存在
+    if [ ! -d "$PANEL_DIR" ]; then
+        echo -e "${RED}面板目录不存在: $PANEL_DIR${NC}"
+        return 1
+    fi
     
-    echo -e "${GREEN}服务已启动，PID: $(cat "$BASE_DIR/panel.pid")，端口: $PORT${NC}"
+    # 保存当前目录
+    CURRENT_DIR=$(pwd)
+    
+    # 切换到面板目录
+    cd "$PANEL_DIR" || { echo -e "${RED}无法切换到面板目录${NC}"; return 1; }
+    
+    # 启动服务
+    PORT=$PORT node server.js > "$LOG_FILE" 2>&1 &
+    local server_pid=$!
+    echo $server_pid > "$BASE_DIR/panel.pid"
+    
+    # 返回到原始目录
+    cd "$CURRENT_DIR" || echo -e "${YELLOW}警告：无法返回原始目录${NC}"
+    
+    echo -e "${GREEN}服务已启动，PID: $server_pid，端口: $PORT${NC}"
     echo -e "${GREEN}请访问 http://localhost:$PORT 或 http://服务器IP:$PORT 访问管理面板${NC}"
 }
 
