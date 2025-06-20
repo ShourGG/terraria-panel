@@ -22,12 +22,12 @@
 </template>
 
 <script setup lang="ts">
-import settings from "@/settings";
+// import settings from "@/settings";
 import Logo from "@/layouts/components/Logo/index.vue";
 import Toolbar from "@/layouts/components/Header/components/Toolbar.vue";
 // import HorizontalSubMenu from "@/layouts/components/Menu/HorizontalSubMenu.vue";
 import Main from "@/layouts/components/Main/index.vue";
-import { ref } from "vue";
+// import { ref } from "vue";
 // import { useRoute } from "vue-router";
 // import useAuthStore from "@/stores/modules/auth";
 import useGlobalStore from "@/stores/modules/global";

@@ -22,7 +22,7 @@ const addWaterMarker: Directive = (str: string, parentNode: any, font: any, text
   cans.font = font || "20px 宋体";
   cans.fillStyle = textColor || "rgba(180, 180, 180, 0.3)";
   cans.textAlign = "left";
-  cans.textBaseline = "Middle" as CanvasTextBaseline;
+  cans.textBaseline = "middle" as CanvasTextBaseline;
   cans.fillText(str, can.width / 10, can.height / 2);
   parentNode.style.backgroundImage = "url(" + can.toDataURL("image/png") + ")";
 };
