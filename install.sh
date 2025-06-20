@@ -250,19 +250,19 @@ download_panel() {
     if git clone --depth=1 -b koi-ui "$REPO_URL" "$TMP_DIR/repo"; then
         echo -e "${GREEN}克隆成功${NC}"
         
-        # 检查是否包含dist目录
-        if [ -d "$TMP_DIR/repo/dist" ]; then
+        # 检查是否包含public目录
+        if [ -d "$TMP_DIR/repo/public" ]; then
             echo -e "${BLUE}复制文件到面板目录...${NC}"
             
             # 复制所有文件到面板目录
-            cp -r "$TMP_DIR/repo/"* "$PANEL_DIR/"
+            cp -rf "$TMP_DIR/repo/"* "$PANEL_DIR/"
             
-            # 确保dist目录存在
-            if [ -d "$PANEL_DIR/dist" ]; then
-                echo -e "${GREEN}UI界面文件已复制${NC}"
+            # 确保public目录存在
+            if [ -d "$PANEL_DIR/public" ]; then
+                echo -e "${GREEN}public目录复制成功${NC}"
             else
-                echo -e "${RED}复制UI界面文件失败${NC}"
-                return 1
+                echo -e "${RED}public目录复制失败${NC}"
+                exit 1
             fi
             
             # 清理临时目录
@@ -270,7 +270,7 @@ download_panel() {
             
             return 0
         else
-            echo -e "${RED}仓库中不包含dist目录${NC}"
+            echo -e "${RED}仓库中不包含public目录${NC}"
             return 1
         fi
     else

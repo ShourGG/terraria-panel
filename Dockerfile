@@ -1,13 +1,13 @@
-FROM node:18-alpine
+FROM node:18
 
 WORKDIR /app
 
 COPY . .
 
 RUN npm install && \
-    mkdir -p dist && \
-    cp -r dist/* dist/ && \
-    chmod +x *.sh
+    mkdir -p public && \
+    cp -r public/* public/ && \
+    npm prune --production
 
 EXPOSE 10788
 

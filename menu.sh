@@ -44,7 +44,7 @@ download_and_start() {
     echo -e "${YELLOW}下载并安装泰拉瑞亚服务器管理面板...${NC}"
     
     # 检查是否已经安装
-    if [ -f "server.js" ] && [ -d "dist" ]; then
+    if [ -f "server.js" ] && [ -d "public" ]; then
         echo -e "${YELLOW}检测到已安装管理面板，是否重新安装？[y/N]${NC}"
         read -r reinstall
         if [[ ! $reinstall =~ ^[Yy]$ ]]; then

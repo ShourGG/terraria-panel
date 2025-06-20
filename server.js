@@ -47,12 +47,12 @@ const homeDir = os.homedir();
 const terrariaDir = path.join(homeDir, 'terrariaPanel', 'terraria');
 const panelDir = path.join(homeDir, 'terrariaPanel', 'panel');
 
-// 静态文件服务 - 使用dist目录
-const distPath = path.join(__dirname, 'dist');
+// 静态文件服务 - 使用public目录
+const distPath = path.join(__dirname, 'public');
 
-// 检查dist目录是否存在
+// 检查public目录是否存在
 if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'))) {
-  console.log('使用本地dist目录:', distPath);
+  console.log('使用本地public目录:', distPath);
   app.use(express.static(distPath));
   
   // 修改页面标题和首页重定向
@@ -105,10 +105,10 @@ if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html')))
     res.send(indexHtml);
   });
 } else {
-  console.log('本地dist目录不存在或不完整，尝试使用面板安装目录下的dist');
-  const panelDistPath = path.join(panelDir, 'dist');
+  console.log('本地public目录不存在或不完整，尝试使用面板安装目录下的public');
+  const panelDistPath = path.join(panelDir, 'public');
   if (fs.existsSync(panelDistPath) && fs.existsSync(path.join(panelDistPath, 'index.html'))) {
-    console.log('使用面板安装目录下的dist:', panelDistPath);
+    console.log('使用面板安装目录下的public:', panelDistPath);
     app.use(express.static(panelDistPath));
     
     // 修改页面标题和首页重定向
@@ -517,13 +517,10 @@ app.use((req, res) => {
   // 根据使用的前端目录决定返回哪个index.html
   if (fs.existsSync(distPath) && fs.existsSync(path.join(distPath, 'index.html'))) {
     res.sendFile(path.join(distPath, 'index.html'));
+  } else if (fs.existsSync(panelDistPath) && fs.existsSync(path.join(panelDistPath, 'index.html'))) {
+    res.sendFile(path.join(panelDistPath, 'index.html'));
   } else {
-    const panelDistPath = path.join(panelDir, 'dist');
-    if (fs.existsSync(panelDistPath) && fs.existsSync(path.join(panelDistPath, 'index.html'))) {
-      res.sendFile(path.join(panelDistPath, 'index.html'));
-    } else {
-      res.status(404).send('找不到前端文件');
-    }
+    res.status(404).send('找不到前端文件');
   }
 });
 

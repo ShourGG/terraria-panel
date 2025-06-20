@@ -27,11 +27,11 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
-# 检查dist目录是否存在
-if [ -d "dist" ]; then
+# 检查public目录是否存在
+if [ -d "public" ]; then
     echo -e "${GREEN}找到UI界面，将使用UI界面${NC}"
 else
-    echo -e "${RED}错误: 未找到UI界面文件，请确保dist目录存在${NC}"
+    echo -e "${RED}错误: 未找到UI界面文件，请确保public目录存在${NC}"
     exit 1
 fi
 
